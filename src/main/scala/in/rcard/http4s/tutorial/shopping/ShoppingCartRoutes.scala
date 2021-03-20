@@ -13,12 +13,11 @@ object ShoppingCartRoutes {
     HttpRoutes.of[F] {
       case GET -> Root / "carts" / id =>
         for {
-          maybeCart <- sc.findBy(ShoppingCarts.ShoppingCartId(id))
-          resp <- Ok(maybeCart)
-            /*maybeCart match {
+          maybeCart <- sc.findBy(id)
+          resp <- maybeCart match {
             case Some(cart) => Ok(cart)
-            case _ => NotFound
-          }*/
+            case _ => NotFound()
+          }
         } yield resp
     }
   }
