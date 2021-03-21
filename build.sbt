@@ -3,7 +3,7 @@ val CirceVersion = "0.13.0"
 val MunitVersion = "0.7.20"
 val LogbackVersion = "1.2.3"
 val MunitCatsEffectVersion = "0.13.0"
-val NewTypeVersion = "0.4.4"
+val NewTypeVersion = "0.4.3"
 
 lazy val root = (project in file("."))
   .settings(
