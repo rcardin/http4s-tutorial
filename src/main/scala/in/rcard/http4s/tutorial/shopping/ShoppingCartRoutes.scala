@@ -19,6 +19,12 @@ object ShoppingCartRoutes {
             case _ => NotFound()
           }
         } yield resp
+      case req @ POST -> Root / "carts" =>
+        for {
+          id <- req.as[String]
+          _ <- sc.create(ShoppingCarts.ShoppingCartId(id))
+          resp <- Ok()
+        } yield resp
     }
   }
 }
