@@ -59,3 +59,25 @@ libraryDependencies ++= Seq(
   "org.scalameta"   %% "svm-subs"            % "20.2.0"
 )
 ```
+
+The best way to understand each dependency is to explain it along the way. So, let's start the 
+journey along the `http4s` library.
+
+## Http4s Basics
+
+The `http4s` library grounds its function on the concepts of `Request` and `Response`. Indeed, using
+the library, we respond to a `Request` using a function of type `Request -> Response`. We call this
+function a route. In fact, a server is nothing more than a set of routes.
+
+Very often, producing  `Response` from a `Request` means interacting with databases, external 
+services, and so on, which means producing some side effect. However, as diligent functional 
+developers, we aim to maintain the referential transparency of our function. Hence, the library
+surrounds the `Resposne` type into an effect `F` (more to come...), changing the route definition 
+in `Request -> F[Response]`.
+
+Nevertheless, not all the `Request`s will find a route to a `Response`. So, we need to take into 
+consideration this fact, defining a route as a function of type `Request -> F[Option[Response]]`.
+Using a monad transformer, we can simplify the route type in `Request -> OptionT[F, Response]`.
+
+TODO...
+
