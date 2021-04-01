@@ -82,5 +82,26 @@ Using a monad transformer, we can simplify the route type in `Request => OptionT
 Finally, using the types Cats provides us, we can rewrite the type `Request => OptionT[F, Response]`
 using the Kleisli monad transformer. Remembering that the type `Kleisli[F[_], A, B]` is just a 
 wrapper around the function `A => F[B]`, our route definition becomes 
-`Kleisli[OptionT[F, *], Request, Response]`. Easy or not?
+`Kleisli[OptionT[F, *], Request, Response]`. Easy, isn't it?
 
+Fortunately, the `http4s` library defines a type alias for the Kleisli monad transformer that is 
+easier to understand for human beings: `HttpRoutes[F]`.
+
+Hence, to define the routes that we need for our new shining website it's sufficient to instantiate 
+some routes using the above type. Awesome. So, it's time to start our journey. Let's implement the
+endpoint returning the list of movies associated with a particular director.
+
+## Http4s DSL
+
+We can image the route that returns the list of movies of a directory as something similar to the
+following:
+
+```
+GET /movies?director=Zack%20Snyder
+```
+
+Every route corresponds to an instance of the `HttpRoutes[F]` type. Again, the `http4s` library 
+helps us in the definition of such routes, providing us with a dedicated DSL, the `http4s-dsl`.
+
+Through the DSL, we build an `HttpRoutes[F]` using pattern matching, and a sequence of case 
+statements. TODO...
