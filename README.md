@@ -93,7 +93,7 @@ endpoint returning the list of movies associated with a particular director.
 
 ## Http4s DSL
 
-We can image the route that returns the list of movies of a directory as something similar to the
+We can image the route that returns the list of movies of a director as something similar to the
 following:
 
 ```
@@ -103,5 +103,29 @@ GET /movies?director=Zack%20Snyder
 Every route corresponds to an instance of the `HttpRoutes[F]` type. Again, the `http4s` library 
 helps us in the definition of such routes, providing us with a dedicated DSL, the `http4s-dsl`.
 
-Through the DSL, we build an `HttpRoutes[F]` using pattern matching, and a sequence of case 
-statements. TODO...
+Through the DSL, we build an `HttpRoutes[F]` using pattern matching, as a sequence of case 
+statements. So, let's do it:
+
+```scala
+HttpRoutes.of[F] {
+  case GET -> Root / "movies" :? DirectoryQueryParamMatcher(director) => ???
+}
+```
+
+As we can see, the DSL is very straightforward. We surround the definition of all the routes in the
+`HttpRoutes.of` constructor. As we said, we parametrize the routes' definition with an effect `F`, as
+we probably have to retrieve information from some external resource.
+
+Then, each `case` statement represents a specific route, and it matches a `Request` object. Hence,
+the DSL provides proper decostructors for a `Request` object. In detail, the decostructor for 
+`Request`s is called `->`, and decomposes them as a couple containing a `Method` (i.e. `GET`, 
+`POST`, `PUT`, and so on), and a `Path`: 
+
+```scala
+// From the Http4s DSL
+object -> {
+  def unapply[F[_]](req: Request[F]): Some[(Method, Path)] =
+    Some((req.method, Path(req.pathInfo)))
+}
+```
+
