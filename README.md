@@ -129,3 +129,6 @@ object -> {
 }
 ```
 
+The definition of the route continues extracting the rest of information of the provided URI. If the
+path is absolute, we use the `Root` object, which simply consumes the leading `'/'` character at the
+beginning of the path.
