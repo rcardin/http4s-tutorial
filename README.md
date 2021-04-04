@@ -28,7 +28,7 @@ defining the resources we need in terms of domain.
 For sure, we need a `Movie`, and a movie has a `Director`, many `Actors`, a `Synopsis`, and finally 
 a `Review`. Without dwelling on the details, we can identify the following APIs among the others:
 
- * Getting all movies of a director (i.e., Zack Snyder)
+ * Getting all movies of a director (i.e., Zack Snyder), made during a given year
  * Getting the list of actors of a movie
  * Adding a new director to the application
 
@@ -108,7 +108,7 @@ statements. So, let's do it:
 
 ```scala
 HttpRoutes.of[F] {
-  case GET -> Root / "movies" :? DirectoryQueryParamMatcher(director) => ???
+  case GET -> Root / "movies" :? DirectoryQueryParamMatcher(director) &+ YearQueryParamMatcher (year) => ???
 }
 ```
 
@@ -132,3 +132,22 @@ object -> {
 The definition of the route continues extracting the rest of information of the provided URI. If the
 path is absolute, we use the `Root` object, which simply consumes the leading `'/'` character at the
 beginning of the path.
+
+Each part of the remaining `Path` is read using a specific extractor. We use the `/` extractor to 
+pattern match each piece of the path. In this case, we match pure a `String`, that is `movie`.  
+However, we will see in a minute that is possible to pattern match also directly in a variable.
+
+The route we are matching contains a query parameter. We can introduce the match of query parameters
+using the `:?` extractor. Even though there are many ways of extracting query params, the library
+sponsors the use of _matchers_. In detail, extending the `abstract class QueryParamDecoderMatcher`,
+we can extract directly into a variable a given parameters:
+
+```scala
+object DirectorQueryParamMatcher extends QueryParamDecoderMatcher[String]("director")
+```
+
+As we can see, the `QueryParamDecoderMatcher` requires the name of the parameter and its type. Then,
+The library  provides the value of the parameter directly in the specified variable, which in our
+example is called `director`.
+
+TODO
