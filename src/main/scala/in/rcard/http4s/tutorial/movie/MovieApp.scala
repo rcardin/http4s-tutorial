@@ -20,7 +20,7 @@ object MovieApp {
     val dsl = new Http4sDsl[F]{}
     import dsl._
     HttpRoutes.of[F] {
-      case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) &+ YearQueryParamMatcher(year) => ???
+      case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(year) => ???
     }
   }
 }

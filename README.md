@@ -108,7 +108,7 @@ statements. So, let's do it:
 
 ```scala
 HttpRoutes.of[F] {
-  case GET -> Root / "movies" :? DirectoryQueryParamMatcher(director) &+ YearQueryParamMatcher (year) => ???
+  case GET -> Root / "movies" :? DirectoryQueryParamMatcher(director) +& YearQueryParamMatcher (year) => ???
 }
 ```
 
@@ -117,9 +117,12 @@ As we can see, the DSL is very straightforward. We surround the definition of al
 we probably have to retrieve information from some external resource.
 
 Then, each `case` statement represents a specific route, and it matches a `Request` object. Hence,
-the DSL provides proper decostructors for a `Request` object. In detail, the decostructor for 
-`Request`s is called `->`, and decomposes them as a couple containing a `Method` (i.e. `GET`, 
-`POST`, `PUT`, and so on), and a `Path`: 
+the DSL provides many decostructors for a `Request` object, and everyone is associated with a proper
+`unapply` method.
+
+First, the decostructor that we can use to extract the HTTP method of a `Request`s is called `->`, 
+and decomposes them as a couple containing a `Method` (i.e. `GET`,`POST`, `PUT`, and so on), and a 
+`Path`: 
 
 ```scala
 // From the Http4s DSL
@@ -149,5 +152,20 @@ object DirectorQueryParamMatcher extends QueryParamDecoderMatcher[String]("direc
 As we can see, the `QueryParamDecoderMatcher` requires the name of the parameter and its type. Then,
 The library  provides the value of the parameter directly in the specified variable, which in our
 example is called `director`.
+
+If we have to handle more than one query parameter, we can use the `+&` extractor, as we did in our
+example. 
+
+It's possible to manage also optional query parameters. In this case, we have to change the base 
+class of our matcher, using the `OptionalQueryParamDecoderMatcher`:
+
+```scala
+object YearQueryParamMatcher extends OptionalQueryParamDecoderMatcher[Year]("year")
+```
+
+Moreover, every mather uses an instance of the class `QueryParamDecoder[T]` to decode its query 
+parameter. The DSL provides us the decoders for basic types, such as `String`, numbers, and so on.
+However, we want to decode our `"year"` query parameters directly as an instance of the 
+`java.time.Year` class.
 
 TODO
