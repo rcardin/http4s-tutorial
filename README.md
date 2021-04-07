@@ -163,9 +163,30 @@ class of our matcher, using the `OptionalQueryParamDecoderMatcher`:
 object YearQueryParamMatcher extends OptionalQueryParamDecoderMatcher[Year]("year")
 ```
 
-Moreover, every mather uses an instance of the class `QueryParamDecoder[T]` to decode its query 
-parameter. The DSL provides us the decoders for basic types, such as `String`, numbers, and so on.
+Considering that the `OptionalQueryParamDecoderMatcher` class matches against optional parameters,
+it's straightforward that the `year` variable will have the type `Option[Year]`.
+
+Moreover, every matcher uses an instance of the class `QueryParamDecoder[T]` to decode its query 
+parameter. The DSL provides the decoders for basic types, such as `String`, numbers, and so on.
 However, we want to decode our `"year"` query parameters directly as an instance of the 
 `java.time.Year` class.
 
-TODO
+To do so, starting from a `QueryParamDecoder[Int]`, we can map the decoded result in everything we
+need, i.e. an instance of the `java.time.Year` class:
+
+```scala
+implicit val yearQueryParamDecoder: QueryParamDecoder[Year] =
+    QueryParamDecoder[Int].map(Year.of)
+```
+
+As the matchers access decoders using the type classes pattern, our custom decoder must be in the 
+scope of the matcher as an `implicit` value. Indeed, decoders define the companion object 
+`QueryParamDecoder` that lets the matchers summoning the right instance of the type class:
+
+```scala
+object QueryParamDecoder {
+  def apply[T](implicit ev: QueryParamDecoder[T]): QueryParamDecoder[T] = ev
+}
+```
+
+The object `QueryParamDecoder` contains many other useful methods to create custom decoders.
