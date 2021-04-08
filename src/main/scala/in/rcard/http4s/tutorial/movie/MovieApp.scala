@@ -21,6 +21,7 @@ object MovieApp {
     import dsl._
     HttpRoutes.of[F] {
       case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(year) => ???
+      case GET -> Root / "movies" / UUIDVar(movieId) / "actors" => ???
     }
   }
 }

@@ -91,7 +91,7 @@ Hence, to define the routes that we need for our new shining website it's suffic
 some routes using the above type. Awesome. So, it's time to start our journey. Let's implement the
 endpoint returning the list of movies associated with a particular director.
 
-## Http4s DSL
+## Route Definition
 
 We can image the route that returns the list of movies of a director as something similar to the
 following:
@@ -139,6 +139,8 @@ beginning of the path.
 Each part of the remaining `Path` is read using a specific extractor. We use the `/` extractor to 
 pattern match each piece of the path. In this case, we match pure a `String`, that is `movie`.  
 However, we will see in a minute that is possible to pattern match also directly in a variable.
+
+### Handling Query Parameters
 
 The route we are matching contains a query parameter. We can introduce the match of query parameters
 using the `:?` extractor. Even though there are many ways of extracting query params, the library
@@ -190,3 +192,24 @@ object QueryParamDecoder {
 ```
 
 The object `QueryParamDecoder` contains many other useful methods to create custom decoders.
+
+### Matching on Path Parameters
+
+Another common use case is having a route that contains some path parameters. Indeed, the APIs of 
+our backend are not exception, exposing a route that retrieves the list of actors of a movie:
+
+```
+GET /movies/aa4f0f9c-c703-4f21-8c05-6a0c8f2052f0/actors
+```
+
+Using the above route, we refer to a particular movie using its identifier, which we represent as a
+UUID. Again, the `http4s` library defines for us a set of extractor that help in capturing the 
+needed information. For a UUID. we can use the object `UUIDVar`:
+
+```scala
+case GET -> Root / "movies" / UUIDVar(movieId) / "actors" => ???
+```
+
+Hence, the variable `movieId` has the type `java.util.UUID`. Equally, the library defines extractors
+also other primitive types, such as `IntVar`, `LongVar`. Moreover, the default extractor binds to 
+variable of type `String`.
