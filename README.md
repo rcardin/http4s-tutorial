@@ -235,7 +235,19 @@ HttpRoutes.of[F] {
 }
 ```
 
-## Encoding and Decoding Bodies
+## Encoding and Decoding Http Body
 
 So, we should know everything we need to match routes. Now, it's time to understand how to decode 
 and encode structured information associated with the body of a `Request` or of a `Response`.
+
+As we initially said, we want to let our application to expose an API to add a new Director in the
+system. Such an API will look something similar to the following:
+
+```
+POST /directors
+{
+  "firstName": "Zack",
+  "lastName": "Snyder"
+}
+```
+
