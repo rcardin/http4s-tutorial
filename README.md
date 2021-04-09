@@ -213,3 +213,29 @@ case GET -> Root / "movies" / UUIDVar(movieId) / "actors" => ???
 Hence, the variable `movieId` has the type `java.util.UUID`. Equally, the library defines extractors
 also other primitive types, such as `IntVar`, `LongVar`. Moreover, the default extractor binds to 
 variable of type `String`.
+
+However, if we need, we can develop our custom path parameter extractor, providing an object that
+implements the method `def unapply(str: String): Option[T]`. For example, if we want to extract the
+first and the last name of a director directly from the path, we can develop our custom extractor:
+
+```scala
+object DirectorVar {
+  def unapply(str: String): Option[Director] = {
+    if (str.nonEmpty && str.matches(".* .*")) {
+      Try {
+        val splitStr = str.split(' ')
+        Director(splitStr(0), splitStr(1))
+      }.toOption
+    } else None
+  }
+}
+
+HttpRoutes.of[F] {
+  case GET -> Root / "directors" / DirectorVar(director) => ???
+}
+```
+
+## Encoding and Decoding Bodies
+
+So, we should know everything we need to match routes. Now, it's time to understand how to decode 
+and encode structured information associated with the body of a `Request` or of a `Response`.
