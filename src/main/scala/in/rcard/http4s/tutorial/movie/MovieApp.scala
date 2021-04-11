@@ -21,8 +21,13 @@ object MovieApp {
     val dsl = new Http4sDsl[F]{}
     import dsl._
     HttpRoutes.of[F] {
-      case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(year) => ???
-      case GET -> Root / "movies" / UUIDVar(movieId) / "actors" => ???
+      case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(year) =>
+        println(director)
+        println(year)
+        Ok()
+      case GET -> Root / "movies" / UUIDVar(movieId) / "actors" =>
+        println(movieId)
+        Ok()
     }
   }
 
@@ -43,7 +48,14 @@ object MovieApp {
     val dsl = new Http4sDsl[F]{}
     import dsl._
     HttpRoutes.of[F] {
-      case GET -> Root / "directors" / DirectorVar(director) => ???
+      case GET -> Root / "directors" / DirectorVar(director) =>
+        println(director)
+        Ok()
     }
+  }
+
+  def allRoutes[F[_]: Sync]: HttpRoutes[F] = {
+    import cats.syntax.semigroupk._
+    movieRoutes <+> directorRoutes
   }
 }

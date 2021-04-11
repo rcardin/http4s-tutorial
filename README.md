@@ -235,6 +235,33 @@ HttpRoutes.of[F] {
 }
 ```
 
+### Composing Routes
+
+The routes defined using the http4s DSL are composable. So, it means that we can define them in 
+different modules, and then compose them in a single `HttpRoutes[F]` object. As developers, we know
+how important is compositionality of modules to obtain code that is easily maintainable and 
+evolvable.
+
+The trick is that the type `HttpRoutes[F]`, being an instance of the `Klesli` type, it is also a
+`Semigroup`. In detail, the right type class is `SemigroupK`, as we have a semigroup of an effect 
+(remember the `F[_]` type constructor).
+
+Hence, [the main feature of semigroups](https://blog.rockthejvm.com/semigroups-and-monoids-in-scala/) 
+is the definition of the `combine` function, which, given two elements of the semigroup, returns a 
+new element also belonging to the semigroup. For the `SemigroupK` type class, the function is called
+`combineK` or `<+>`.
+
+```scala
+def allRoutes[F[_]: Sync]: HttpRoutes[F] = {
+  import cats.syntax.semigroupk._
+  movieRoutes <+> directorRoutes
+}
+```
+
+To access the `<+>`, we need the right imports from Cats, which is at least 
+`cats.syntax.semigroupk._`. Fortunately, we import the `cats.SemigroupK` type class for free using
+the `Klesli` type.
+
 ## Encoding and Decoding Http Body
 
 So, we should know everything we need to match routes. Now, it's time to understand how to decode 
