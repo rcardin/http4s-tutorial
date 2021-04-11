@@ -51,6 +51,10 @@ object MovieApp {
       case GET -> Root / "directors" / DirectorVar(director) =>
         println(director)
         Ok()
+      case req @ POST -> Root / "directors" =>
+        for {
+          director <- req.as[Director]
+        }
     }
   }
 

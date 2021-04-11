@@ -267,7 +267,7 @@ the `Klesli` type.
 So, we should know everything we need to match routes. Now, it's time to understand how to decode 
 and encode structured information associated with the body of a `Request` or of a `Response`.
 
-As we initially said, we want to let our application to expose an API to add a new Director in the
+As we initially said, we want to let our application to expose an API to add a new `Director` in the
 system. Such an API will look something similar to the following:
 
 ```
@@ -278,3 +278,15 @@ POST /directors
 }
 ```
 
+First thing first, we need to access directly to the `Request[F]` body through pattern matching:
+
+```scala
+case req @ POST -> Root / "directors" => ???
+```
+
+Then, the `Request[F]` object has a `body` attribute of type `EntityBody[F]`, which is a type alias
+for the type `Stream[F, Byte]`. As the HTTP protocol defines, the body an HTTP request is stream of
+bytes. The http4s library uses the [`fs2.io`](https://fs2.io/#/) library as stream implementation.
+Indeed, this library also uses the Typelevel stack to implement its functional vision of streams.
+
+TODO.
