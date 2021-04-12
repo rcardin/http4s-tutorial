@@ -278,7 +278,8 @@ POST /directors
 }
 ```
 
-First thing first, we need to access directly to the `Request[F]` body through pattern matching:
+First thing first, to access its body, we need to access directly to the `Request[F]` through 
+pattern matching:
 
 ```scala
 case req @ POST -> Root / "directors" => ???
@@ -289,4 +290,30 @@ for the type `Stream[F, Byte]`. As the HTTP protocol defines, the body an HTTP r
 bytes. The http4s library uses the [`fs2.io`](https://fs2.io/#/) library as stream implementation.
 Indeed, this library also uses the Typelevel stack to implement its functional vision of streams.
 
-TODO.
+In detail, every `Request[F]` extends the `Media[F]` trait. This trait exposes many useful methods
+dealing with the body and some header of a request, and the most interesting is the follwing 
+function:
+
+```scala
+final def as[A](implicit F: MonadThrow[F], decoder: EntityDecoder[F, A]): F[A] =
+```
+
+So, the `as` function lets us to decode a request body as a type `A`. To do so, the function uses
+an `EntityDecoder[F, A]`, which we must provide in the context as an implicit object.
+
+An `EntityDecoder` (and its counterpart `EntityEncoder`) allows us to deal with the streaming nature
+of the data in an HTTP body. In addition, decoders and encoders relates directly to the 
+`Content-Type` declared as an HTTP Header in the request / response. Indeed, we need an different
+kind of decoders and encoders for every type of content.
+
+The http4s library ships with decoders and encoders for a limited type of contents, such us `String`,
+`File`, `InputStream`, and it manages more complex contents using plugin libraries.
+
+In our example, the request contains a new director in JSON format. To deal with JSON body, the most
+frequent choice is to use the Circe plugin:
+
+```scala
+"org.http4s" %% "http4s-circe" % 0.21.23,
+```
+
+
