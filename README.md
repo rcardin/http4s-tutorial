@@ -44,7 +44,7 @@ this version of http4s uses Scala 2.13 as target language.
 
 The dependency we must add in the `build.sbt` file are a lot:
 
-```scala
+```sbt
 val Http4sVersion = "0.21.23"
 val LogbackVersion = "1.2.3"
 val MunitVersion = "0.7.20",
@@ -312,8 +312,24 @@ The http4s library ships with decoders and encoders for a limited type of conten
 In our example, the request contains a new director in JSON format. To deal with JSON body, the most
 frequent choice is to use the Circe plugin:
 
-```scala
+```sbt
 "org.http4s" %% "http4s-circe" % 0.21.23,
 ```
 
+The basic type provided by the circe library to manipulate JSON information is the `io.circeJson` type. 
+Hence, the `http4s-circe` module defines the type `EntityDecoder[Json]` and `EntityEncoder[Json]`, 
+that is, all we need to translate a request and a response body into an instance of `JSon`.
 
+However, `Json` type translate directly into JSON literals, such as 
+`json"""{"firstName": "Zack", "lastName": "Snyder"}"""`, and we don't really want to deal with them.
+Instead, we usually use case classes to represent information carried by a request or response body.
+In our example, the JSON representation of a director will translate in the following case class:
+
+```scala
+case class Director(val firstName: String, val lastName: String)
+```
+
+First thing first, we need to decode the incoming request into an instance of a `Json` object.
+Fortunately, the decoding is done automatically by the `EntityDecoder[Json]` type. However, we need
+to do a step beyond to obtain an object of type `Director`. In details, Circe needs an instance of
+the type `io.circe.Decoder[Director]` to decode a `Json` object into a `Director` object.

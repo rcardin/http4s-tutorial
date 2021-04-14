@@ -1,9 +1,11 @@
 package in.rcard.http4s.tutorial.movie
 
 import cats.effect.Sync
-import org.http4s.{HttpRoutes, QueryParamDecoder}
+import org.http4s.{EntityDecoder, HttpRoutes, QueryParamDecoder}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.dsl.impl.{OptionalQueryParamDecoderMatcher, QueryParamDecoderMatcher}
+import io.circe.generic.auto._
+import org.http4s.circe.jsonOf
 
 import java.time.Year
 import scala.util.Try
@@ -47,6 +49,7 @@ object MovieApp {
   def directorRoutes[F[_]: Sync]: HttpRoutes[F] = {
     val dsl = new Http4sDsl[F]{}
     import dsl._
+    implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director]
     HttpRoutes.of[F] {
       case GET -> Root / "directors" / DirectorVar(director) =>
         println(director)
