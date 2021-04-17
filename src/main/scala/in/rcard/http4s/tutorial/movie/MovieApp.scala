@@ -1,10 +1,12 @@
 package in.rcard.http4s.tutorial.movie
 
 import cats.effect.Sync
-import org.http4s.{EntityDecoder, HttpRoutes, QueryParamDecoder}
+import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, QueryParamDecoder}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.dsl.impl.{OptionalQueryParamDecoderMatcher, QueryParamDecoderMatcher}
 import io.circe.generic.auto._
+import io.circe.syntax._
+import org.http4s.circe._
 import org.http4s.circe.jsonOf
 
 import java.time.Year
@@ -19,21 +21,35 @@ object MovieApp {
 
   object YearQueryParamMatcher extends OptionalQueryParamDecoderMatcher[Year]("year")
 
+  case class Movie(title: String, year: Int, actors: List[String], director: String)
+
+  val snjl: Movie = Movie(
+    "Zack Snyder's Justice League",
+    2021,
+    List(
+      "Henry Cavill",
+      "Gal Godot",
+      "Ezra Miller",
+      "Ben Affleck",
+      "Ray Fisher",
+      "Jason Momoa"
+    ),
+    "Zack Snyder"
+  )
+
   def movieRoutes[F[_]: Sync]: HttpRoutes[F] = {
     val dsl = new Http4sDsl[F]{}
     import dsl._
     HttpRoutes.of[F] {
       case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(year) =>
-        println(director)
-        println(year)
-        Ok()
+        Ok(snjl.asJson)
       case GET -> Root / "movies" / UUIDVar(movieId) / "actors" =>
         println(movieId)
         Ok()
     }
   }
 
-  case class Director(val firstName: String, val lastName: String)
+  case class Director(firstName: String, lastName: String)
 
   object DirectorVar {
     def unapply(str: String): Option[Director] = {

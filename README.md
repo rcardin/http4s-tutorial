@@ -329,7 +329,7 @@ Instead, we usually use case classes to represent information carried by a reque
 In our example, the JSON representation of a director will translate in the following case class:
 
 ```scala
-case class Director(val firstName: String, val lastName: String)
+case class Director(firstName: String, lastName: String)
 ```
 
 First thing first, we need to decode the incoming request into an instance of a `Json` object.
@@ -363,6 +363,7 @@ def directorRoutes[F[_]: Sync]: HttpRoutes[F] = {
   }
 ```
 
-#### Encoding the Response Body Using Circe
+### Encoding the Response Body Using Circe
 
-TODO
+The encoding process of a response body is very similar to the one just described for decoding a
+request body. 
