@@ -264,6 +264,7 @@ the `Klesli` type.
 
 ## Encoding and Decoding Http Body
 
+### Access to the Request Body
 So, we should know everything we need to match routes. Now, it's time to understand how to decode 
 and encode structured information associated with the body of a `Request` or of a `Response`.
 
@@ -290,8 +291,10 @@ for the type `Stream[F, Byte]`. As the HTTP protocol defines, the body an HTTP r
 bytes. The http4s library uses the [`fs2.io`](https://fs2.io/#/) library as stream implementation.
 Indeed, this library also uses the Typelevel stack to implement its functional vision of streams.
 
+### Decoding the Request Body Using Circe
+
 In detail, every `Request[F]` extends the `Media[F]` trait. This trait exposes many useful methods
-dealing with the body and some header of a request, and the most interesting is the follwing 
+dealing with the body and some header of a request, and the most interesting is the following 
 function:
 
 ```scala
@@ -330,6 +333,36 @@ case class Director(val firstName: String, val lastName: String)
 ```
 
 First thing first, we need to decode the incoming request into an instance of a `Json` object.
-Fortunately, the decoding is done automatically by the `EntityDecoder[Json]` type. However, we need
+Fortunately, the decoding is automatically done by the `EntityDecoder[Json]` type. However, we need
 to do a step beyond to obtain an object of type `Director`. In details, Circe needs an instance of
 the type `io.circe.Decoder[Director]` to decode a `Json` object into a `Director` object.
+
+Hence, we can provide the instance of the `io.circe.Decoder[Director]` simply adding the import to
+`io.circe.generic.auto._`, which lets Circe to automatically derive for us encoders and decoders. 
+The derivation uses field names of case classes as key names in JSON objects, and vice-versa. As the
+last step, we need to connect the type `Decoder[Director]` to the type `EntityDecoder[Json]`, and 
+this is exactly the work the module `http4s-circe` does for us through the function `jsonOf`:
+
+```scala
+implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director]
+```
+
+Summing up, the final form of the API looks like the following:
+
+```scala
+def directorRoutes[F[_]: Sync]: HttpRoutes[F] = {
+  val dsl = new Http4sDsl[F]{}
+  import dsl._
+  implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director]
+  HttpRoutes.of[F] {
+    case req @ POST -> Root / "directors" =>
+      for {
+        director <- req.as[Director]
+        // ...
+      }
+  }
+```
+
+#### Encoding the Response Body Using Circe
+
+TODO
