@@ -366,4 +366,76 @@ def directorRoutes[F[_]: Sync]: HttpRoutes[F] = {
 ### Encoding the Response Body Using Circe
 
 The encoding process of a response body is very similar to the one just described for decoding a
-request body. 
+request body. As example, we go forward with the API getting all the films directed by a specific 
+director during a year:
+
+```
+GET /movies?director=Zack%20Snyder&year=2021
+```
+
+Hence, we need to model the response of such API, which will be a list of movies:
+
+```json
+[
+  {
+    "title": "Zack Snyder's Justice League",
+    "year": 2021,
+    "actors": [
+      "Henry Cavill",
+      "Gal Godot",
+      "Ezra Miller",
+      "Ben Affleck",
+      "Ray Fisher",
+      "Jason Momoa"
+    ],
+    "director": "Zack Snyder"
+  }
+]
+```
+
+Hence, we can model the above information using a case class:
+
+```scala
+case class Movie(title: String, year: Int, actors: List[String], director: String)
+```
+
+Easy peasy lemon squeezy. As for decoders, we need first to transform our class `Movie` into an 
+instance of the `Json` type, using an instance of `io.circe.Encoder[Movie]`. Again, the 
+`io.circe.generic.auto._` import allows us to automagically define such an encoder. 
+
+Instead, we can perform the actual conversion from the `Movie` type to `Json` using the extension 
+method `asJson`, defined on all the types that have an instance of the `Encoder` typeclass, that we
+have just created for our `Movie` type:
+
+```scala
+package object syntax {
+  implicit final class EncoderOps[A](private val value: A) extends AnyVal {
+    final def asJson(implicit encoder: Encoder[A]): Json = encoder(value)
+  }
+}
+```
+
+As we can see, the above method comes into the scope importing the `io.circe.syntax._` package. As 
+we previously said for decoders, the library http4s-circe provides the type `EntityEncoder[Json]`,
+with the import `org.http4s.circe._`. 
+
+Now, we can complete our API definition, responding with the needed information:
+
+```scala
+val snjl: Movie = Movie(
+  "Zack Snyder's Justice League",
+  2021,
+  List("Henry Cavill", "Gal Godot", "Ezra Miller", "Ben Affleck", "Ray Fisher", "Jason Momoa"),
+  "Zack Snyder"
+)
+
+def movieRoutes[F[_]: Sync]: HttpRoutes[F] = {
+  val dsl = new Http4sDsl[F]{}
+  import dsl._
+  HttpRoutes.of[F] {
+    case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(year) =>
+      Ok(List(snjl).asJson)
+    // ...
+  }
+}
+```

@@ -26,14 +26,7 @@ object MovieApp {
   val snjl: Movie = Movie(
     "Zack Snyder's Justice League",
     2021,
-    List(
-      "Henry Cavill",
-      "Gal Godot",
-      "Ezra Miller",
-      "Ben Affleck",
-      "Ray Fisher",
-      "Jason Momoa"
-    ),
+    List("Henry Cavill", "Gal Godot", "Ezra Miller", "Ben Affleck", "Ray Fisher", "Jason Momoa"),
     "Zack Snyder"
   )
 
@@ -42,7 +35,7 @@ object MovieApp {
     import dsl._
     HttpRoutes.of[F] {
       case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(year) =>
-        Ok(snjl.asJson)
+        Ok(List(snjl).asJson)
       case GET -> Root / "movies" / UUIDVar(movieId) / "actors" =>
         println(movieId)
         Ok()
