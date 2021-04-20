@@ -298,11 +298,13 @@ HttpRoutes.of[F] {
 We will look at the meaning of the `asJson` method in the next section. However, it is important to
 understand the structure of the returned responses, which is:
 
-```shell
-F(Response(
-  status=200, 
-  headers=Headers(Content-Type: application/json, Content-Length: 40)
-))
+```
+F(
+  Response(
+    status=200, 
+    headers=Headers(Content-Type: application/json, Content-Length: 40)
+  )
+)
 ```
 
 As we may imagine, inside the response there is place for the status, the headers, and so on. 
@@ -310,6 +312,34 @@ However, we don't find the body of the response, because the effect was not yet 
 
 In addition, inside the `org.http4s.Status` companion object we can find the functions to build 
 a response with every other HTTP status listed in the IANA specification.
+
+### Headers and Cookies
+
+In the previous section we saw that http4s inserts in the response some preconfigured headers. 
+However, it's possible to add many other headers, during the response creation:
+
+```scala
+Ok(Director("Zack", "Snyder").asJson, Header("My-Custom-Header", "value"))
+```
+
+In addition, the http4s library provides a lot of common HTTP headers in the package 
+`org.http4s.headers`:
+
+```scala
+import org.http4s.headers.`Content-Encoding`
+Ok(`Content-Encoding`(ContentCoding.gzip))
+```
+
+Cookies are nothing more than a more complex form of HTTP Header, called `Set-Cookie`. Again, the
+http4s library gives us an easy way to deal with cookies in responses. However, unlike the headers,
+we set the cookies after the response creation:
+
+```scala
+Ok().map(_.addCookie(ResponseCookie("My-Cookie", "value")))
+```
+
+Obviously, we can instantiate a new `ResponseCookie` giving to the constructor all the additional
+information needed by a cookie, such as expiration, the secure flag, httpOnly, flag, etc. 
 
 ## Encoding and Decoding Http Body
 

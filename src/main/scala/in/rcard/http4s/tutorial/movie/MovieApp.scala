@@ -1,13 +1,13 @@
 package in.rcard.http4s.tutorial.movie
 
 import cats.effect.{IO, Sync}
-import org.http4s.{EntityDecoder, HttpApp, HttpRoutes, QueryParamDecoder}
-import org.http4s.dsl.Http4sDsl
-import org.http4s.dsl.impl.{OptionalQueryParamDecoderMatcher, QueryParamDecoderMatcher}
 import io.circe.generic.auto._
 import io.circe.syntax._
-import org.http4s.circe._
-import org.http4s.circe.jsonOf
+import org.http4s._
+import org.http4s.circe.{jsonOf, _}
+import org.http4s.dsl.Http4sDsl
+import org.http4s.dsl.impl.{OptionalQueryParamDecoderMatcher, QueryParamDecoderMatcher}
+import org.http4s.headers.`Content-Encoding`
 import org.http4s.implicits.http4sKleisliResponseSyntaxOptionT
 
 import java.time.Year
@@ -67,12 +67,13 @@ object MovieApp {
     HttpRoutes.of[F] {
       case GET -> Root / "directors" / DirectorVar(director) =>
         println(director)
-        val okRes = Ok(Director("Zack", "Snyder").asJson)
+        val okRes = Ok(Director("Zack", "Snyder").asJson, Header("My-Custom-Header", "value"))
         okRes
       case req @ POST -> Root / "directors" =>
         for {
           _ <- req.as[Director]
-          res <- Ok()
+          res <- Ok(`Content-Encoding`(ContentCoding.gzip))
+            .map(_.addCookie(ResponseCookie("My-Cookie", "value")))
         } yield res
     }
   }
