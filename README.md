@@ -262,6 +262,40 @@ To access the `<+>`, we need the right imports from Cats, which is at least
 `cats.syntax.semigroupk._`. Fortunately, we import the `cats.SemigroupK` type class for free using
 the `Klesli` type.
 
+## Generate Responses
+
+As we said, generating responses to incoming requests is an operation that could involve some
+side effects. In fact, http4s handle responses with the type `F[Response]`. However, creating
+explicitly a response inside an effect `F` can be tedious. 
+
+So, the `http4s-dsl` module, provides us some shortcuts to create responses associated with HTTP 
+status codes. For example, the `Ok()` function creates a response with a 200 HTTP status:
+
+```scala
+HttpRoutes.of[F] {
+  case GET -> Root / "directors" / DirectorVar(director) =>
+    Ok(Director("Zack", "Snyder").asJson)
+}
+```
+
+We will look at the meaning of the `asJson` method in the next section. However, it is important to
+understand the structure of the returned responses, which is:
+
+```shell
+F(Response(
+  status=200, 
+  headers=Headers(Content-Type: application/json, Content-Length: 40)
+))
+```
+
+As we may imagine, inside the response there is place for the status, the headers, and so on. 
+However, we don't find the body of the response, because the effect was not yet evaluated.
+
+In addition, inside the `org.http4s.Status` companion object we can find the functions to build 
+a response with every other HTTP status listed in the IANA specification.
+
+
+
 ## Encoding and Decoding Http Body
 
 ### Access to the Request Body

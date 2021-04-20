@@ -1,7 +1,7 @@
 package in.rcard.http4s.tutorial.movie
 
-import cats.effect.Sync
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, QueryParamDecoder}
+import cats.effect.{IO, Sync}
+import org.http4s.{EntityDecoder, HttpRoutes, QueryParamDecoder}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.dsl.impl.{OptionalQueryParamDecoderMatcher, QueryParamDecoderMatcher}
 import io.circe.generic.auto._
@@ -35,6 +35,8 @@ object MovieApp {
     import dsl._
     HttpRoutes.of[F] {
       case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(year) =>
+        println(director)
+        println(year)
         Ok(List(snjl).asJson)
       case GET -> Root / "movies" / UUIDVar(movieId) / "actors" =>
         println(movieId)
@@ -59,19 +61,30 @@ object MovieApp {
     val dsl = new Http4sDsl[F]{}
     import dsl._
     implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director]
+    import cats.syntax.flatMap._
+    import cats.syntax.functor._
     HttpRoutes.of[F] {
       case GET -> Root / "directors" / DirectorVar(director) =>
         println(director)
-        Ok()
+        val okRes = Ok(Director("Zack", "Snyder").asJson)
+        okRes
       case req @ POST -> Root / "directors" =>
         for {
-          director <- req.as[Director]
-        }
+          _ <- req.as[Director]
+          res <- Ok()
+        } yield res
     }
   }
 
   def allRoutes[F[_]: Sync]: HttpRoutes[F] = {
     import cats.syntax.semigroupk._
     movieRoutes <+> directorRoutes
+  }
+
+  def main(args: Array[String]): Unit = {
+    val dsl = new Http4sDsl[IO]{}
+    import dsl._
+    val okRes = Ok(Director("Zack", "Snyder").asJson)
+    println(okRes)
   }
 }
