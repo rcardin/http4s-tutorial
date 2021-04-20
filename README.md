@@ -262,6 +262,23 @@ To access the `<+>`, we need the right imports from Cats, which is at least
 `cats.syntax.semigroupk._`. Fortunately, we import the `cats.SemigroupK` type class for free using
 the `Klesli` type.
 
+Last but not least, it's possible that an incoming request doesn't match with any of the available 
+routes. Usually, such requests should end up with a 404 HTTP responses. As always, http4s library
+gives us an easy way to code such behaviour, using the `orNotFound` method from the package 
+`org.http4s.implicits`:
+
+```scala
+def allRoutesComplete[F[_]: Sync]: HttpApp[F] = {
+  allRoutes.orNotFound
+}
+```
+
+As we can see, the method returns an instance of the type `HttpApp[F]`, which is a type alias for
+`Kleisli[F, Request[G], Response[G]]`. Hence, for what we said at the beginning of this article, 
+this `Kleisli` is nothing more than a wrapper around the function `Request[G] => F[Response[G]]`. 
+So, the difference with the `HttpRoutes[F]` type is that we removed the `OptionT` type on the 
+response.
+
 ## Generate Responses
 
 As we said, generating responses to incoming requests is an operation that could involve some
@@ -293,8 +310,6 @@ However, we don't find the body of the response, because the effect was not yet 
 
 In addition, inside the `org.http4s.Status` companion object we can find the functions to build 
 a response with every other HTTP status listed in the IANA specification.
-
-
 
 ## Encoding and Decoding Http Body
 

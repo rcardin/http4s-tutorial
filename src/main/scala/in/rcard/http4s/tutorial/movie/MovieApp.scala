@@ -1,13 +1,14 @@
 package in.rcard.http4s.tutorial.movie
 
 import cats.effect.{IO, Sync}
-import org.http4s.{EntityDecoder, HttpRoutes, QueryParamDecoder}
+import org.http4s.{EntityDecoder, HttpApp, HttpRoutes, QueryParamDecoder}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.dsl.impl.{OptionalQueryParamDecoderMatcher, QueryParamDecoderMatcher}
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s.circe._
 import org.http4s.circe.jsonOf
+import org.http4s.implicits.http4sKleisliResponseSyntaxOptionT
 
 import java.time.Year
 import scala.util.Try
@@ -79,6 +80,10 @@ object MovieApp {
   def allRoutes[F[_]: Sync]: HttpRoutes[F] = {
     import cats.syntax.semigroupk._
     movieRoutes <+> directorRoutes
+  }
+
+  def allRoutesComplete[F[_]: Sync]: HttpApp[F] = {
+    allRoutes.orNotFound
   }
 
   def main(args: Array[String]): Unit = {
