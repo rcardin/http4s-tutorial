@@ -518,3 +518,47 @@ def movieRoutes[F[_]: Sync]: HttpRoutes[F] = {
   }
 }
 ```
+
+## Wiring All Together
+
+At this point, we learnt how to define a route, how to read path and parameter variable, how to read
+and write HTTP bodies, and how to deal with headers and cookies. Now, it's time to wire all together,
+defining and starting the server serving all our routes.
+
+The http4s library support many types of servers. We can look at the integration matrix directly in
+the [official documentation](https://http4s.org/v0.21/integrations/). However, the native supported
+server is [blaze](https://github.com/http4s/blaze). 
+
+We can instantiate a new blaze server using the dedicated builder, `BlazeServerBuilder`, which takes
+as inputs the `HttpRoutes` (or the `HttpApp`), and the host and port serving the given routes:
+
+```scala
+val movieApp = MovieApp.allRoutesComplete[IO]
+BlazeServerBuilder[IO](global)
+  .bindHttp(8080,"localhost")
+  .withHttpApp(movieApp)
+  // ...it's not finished yet
+```
+
+In blaze jargon, we said that we mount the routes at the given path. The default path is `"/"`, but
+if we need we can easily change the path using a `Router`:
+
+```scala
+val apis = Router(
+  "/api/v1" -> MovieApp.movieRoutes[IO],
+  "/api/v2" -> MovieApp.directorRoutes[IO]
+).orNotFound
+BlazeServerBuilder[IO](global)
+  .bindHttp(8080, "localhost")
+  .withHttpApp(apis)
+```
+
+As we can see, the `Router` accepts a list of mappings from a `String` root to an `HttpRoutes` type.
+Moreover, we can omit the call to the `bindHttp`. If so, blaze will serve the APIs using port `8080`
+on the `localhost` address.
+
+### Executing the Server
+
+The easier way to run an application using the blaze server is to run the service inside an `IOApp`, 
+provided by the cats-effect library. The `IOApp` is a utility type that allows us to run application
+using the `IO` effect.
