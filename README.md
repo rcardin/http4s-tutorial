@@ -557,8 +557,41 @@ As we can see, the `Router` accepts a list of mappings from a `String` root to a
 Moreover, we can omit the call to the `bindHttp`. If so, blaze will serve the APIs using port `8080`
 on the `localhost` address.
 
+Moreover, the builder needs an instance of an `scala.concurrent.ExecutionContext` that uses to handle
+incoming requests concurrently. Finally. we need to bind the builder to an effect, because the 
+execution of the service can lead to side effects itself. In our example, we are binding the effect
+to the `IO` monad from the library Cats Effect.
+
 ### Executing the Server
 
-The easier way to run an application using the blaze server is to run the service inside an `IOApp`, 
-provided by the cats-effect library. The `IOApp` is a utility type that allows us to run application
-using the `IO` effect.
+Once we configured the basic properties of a `BlazeServerBuilder`, we need to run it. Since chose to
+use the `IO` monad as an effect, the easier way to run an application using the blaze server is to 
+run the service inside an `IOApp`, provided by the cats-effect library, too. 
+
+The `IOApp` is a utility type that allows us to run applications that use the `IO` effect. Moreover,
+inside the `IOApp`, we the Cats Effect library provides us for free two implicit instances needed by
+the builder to work: An instance of the `ContextShift[IO]` type, and of the `Timer[IO]` type.
+
+When it's up, the server listens to incoming requests on a port. If the server stops, it must 
+release the port and close any other resource it's using. This is exactly the definition of the 
+[`Resource`](https://typelevel.org/cats-effect/docs/2.x/datatypes/resource) type from the Cats 
+Effect library. So, we can use the builder to create a `Resource`:
+
+```scala
+object Main extends IOApp {
+  def run(args: List[String]): IO[ExitCode] = {
+    // Omissis...
+    BlazeServerBuilder[IO](global)
+      .bindHttp(8080, "localhost")
+      .withHttpApp(apis)
+      .resource
+      .use(_ => IO.never)
+      .as(ExitCode.Success)
+  }
+}
+```
+
+Once we have a `Resource` to handle, we can `use` its content. In this example, we say that whatever
+the resource is, we want to produce an effect that never terminates. In this way, the server can 
+accept new requests over and over. Finally, the last statement remap the result of the `IO` into the
+given value, `ExitCode.Success`.
