@@ -593,5 +593,5 @@ object Main extends IOApp {
 
 Once we have a `Resource` to handle, we can `use` its content. In this example, we say that whatever
 the resource is, we want to produce an effect that never terminates. In this way, the server can 
-accept new requests over and over. Finally, the last statement remap the result of the `IO` into the
+accept new requests over and over. Finally, the last statement maps the result of the `IO` into the
 given value, `ExitCode.Success`.
