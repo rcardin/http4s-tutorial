@@ -623,11 +623,24 @@ will produce the following response, as expected:
 ]
 ```
 
+## Addendum: Why We Need to Abstract Over the Effect
+
+TODO
+
 ## Conclusion
 
 Summing up, in this article we introduced the Http4s ecosystem that helps us in building servers 
 serving API over HTTP. The library fully embraces the functional programming paradigm, using Cats 
-and Cats Effects as building blocks. So, we saw how easy is the definition of routes, handling path
-and query parameters, and how to encoding and decoding JSON bodies. Finally, we wired all the things
-ups, and we showed how to define and start a server instance. Hence, there is only one thing left:
-Try it on your own and enjoy pure functional programming HTTP APIs!
+and Cats Effects as building blocks. 
+
+So, we saw how easy is the definition of routes, handling path and query parameters, and how to 
+encoding and decoding JSON bodies. Finally, we wired all the things up, and we showed how to define 
+and start a server instance.
+
+Even though there many other features that this introductive tutorial doesn't address, such as
+[Middlewares](https://http4s.org/v0.21/middleware/), [Streaming](https://http4s.org/v0.21/streaming/),
+[Authentication](https://http4s.org/v0.21/auth/), we could now build many non-trivial use cases
+concerning the development of HTTP API.
+
+Hence, there is only one thing left: Try it on your own and enjoy pure functional programming 
+HTTP APIs!
