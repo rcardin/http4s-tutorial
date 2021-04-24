@@ -575,7 +575,9 @@ the builder to work: An instance of the `ContextShift[IO]` type, and of the `Tim
 When it's up, the server listens to incoming requests on a port. If the server stops, it must 
 release the port and close any other resource it's using. This is exactly the definition of the 
 [`Resource`](https://typelevel.org/cats-effect/docs/2.x/datatypes/resource) type from the Cats 
-Effect library. So, we can use the builder to create a `Resource`:
+Effect library. Hence, we can think about `Resource`s as the `AutoCloseable` type in Java type.
+
+So, we can use the builder to create a `Resource`:
 
 ```scala
 object Main extends IOApp {
@@ -595,3 +597,8 @@ Once we have a `Resource` to handle, we can `use` its content. In this example, 
 the resource is, we want to produce an effect that never terminates. In this way, the server can 
 accept new requests over and over. Finally, the last statement maps the result of the `IO` into the
 given value, `ExitCode.Success`.
+
+### Try It Out!
+
+Once the server is up and running, we can try our freshly new APIs with any HTTP client, such as 
+`cUrl` or something similar.

@@ -1,6 +1,6 @@
 package in.rcard.http4s.tutorial.movie
 
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s._
@@ -22,26 +22,39 @@ object MovieApp {
 
   object YearQueryParamMatcher extends OptionalQueryParamDecoderMatcher[Year]("year")
 
-  case class Movie(title: String, year: Int, actors: List[String], director: String)
+  case class Movie(id: String, title: String, year: Int, actors: List[String], director: String)
 
   val snjl: Movie = Movie(
+    "6bcbca1e-efd3-411d-9f7c-14b872444fce",
     "Zack Snyder's Justice League",
     2021,
     List("Henry Cavill", "Gal Godot", "Ezra Miller", "Ben Affleck", "Ray Fisher", "Jason Momoa"),
     "Zack Snyder"
   )
 
-  def movieRoutes[F[_]: Sync]: HttpRoutes[F] = {
-    val dsl = new Http4sDsl[F]{}
+  def movieRoutes[F[_] : Sync]: HttpRoutes[F] = {
+    val dsl = new Http4sDsl[F] {}
     import dsl._
     HttpRoutes.of[F] {
       case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(year) =>
-        println(director)
-        println(year)
-        Ok(List(snjl).asJson)
+        if ("Zack Snyder" == director && year.contains(Year.of(2021)))
+          Ok(List(snjl).asJson)
+        else
+          NotFound(s"There are no movies for director $director")
       case GET -> Root / "movies" / UUIDVar(movieId) / "actors" =>
-        println(movieId)
-        Ok()
+        if ("6bcbca1e-efd3-411d-9f7c-14b872444fce" == movieId.toString)
+          Ok(
+            List(
+              "Henry Cavill",
+              "Gal Godot",
+              "Ezra Miller",
+              "Ben Affleck",
+              "Ray Fisher",
+              "Jason Momoa"
+            ).asJson
+          )
+        else
+          NotFound(s"No movie with id $movieId found")
     }
   }
 
@@ -58,18 +71,19 @@ object MovieApp {
     }
   }
 
-  def directorRoutes[F[_]: Sync]: HttpRoutes[F] = {
-    val dsl = new Http4sDsl[F]{}
+  def directorRoutes[F[_] : Sync]: HttpRoutes[F] = {
+    val dsl = new Http4sDsl[F] {}
     import dsl._
     implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director]
     import cats.syntax.flatMap._
     import cats.syntax.functor._
     HttpRoutes.of[F] {
       case GET -> Root / "directors" / DirectorVar(director) =>
-        println(director)
-        val okRes = Ok(Director("Zack", "Snyder").asJson, Header("My-Custom-Header", "value"))
-        okRes
-      case req @ POST -> Root / "directors" =>
+        if (director == Director("Zack", "Snyder"))
+          Ok(Director("Zack", "Snyder").asJson, Header("My-Custom-Header", "value"))
+        else
+          NotFound(s"No director called $director found")
+      case req@POST -> Root / "directors" =>
         for {
           _ <- req.as[Director]
           res <- Ok(`Content-Encoding`(ContentCoding.gzip))
@@ -78,19 +92,12 @@ object MovieApp {
     }
   }
 
-  def allRoutes[F[_]: Sync]: HttpRoutes[F] = {
+  def allRoutes[F[_] : Sync]: HttpRoutes[F] = {
     import cats.syntax.semigroupk._
     movieRoutes <+> directorRoutes
   }
 
-  def allRoutesComplete[F[_]: Sync]: HttpApp[F] = {
+  def allRoutesComplete[F[_] : Sync]: HttpApp[F] = {
     allRoutes.orNotFound
-  }
-
-  def main(args: Array[String]): Unit = {
-    val dsl = new Http4sDsl[IO]{}
-    import dsl._
-    val okRes = Ok(Director("Zack", "Snyder").asJson)
-    println(okRes)
   }
 }
