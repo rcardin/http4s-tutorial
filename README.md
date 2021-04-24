@@ -601,4 +601,33 @@ given value, `ExitCode.Success`.
 ### Try It Out!
 
 Once the server is up and running, we can try our freshly new APIs with any HTTP client, such as 
-`cUrl` or something similar.
+`cURL` or something similar. Hence, the call `curl 'http://localhost:8080/api/v1/movies?director=Zack%20Snyder&year=2020' | json_pp`
+will produce the following response, as expected:
+
+```json
+[
+  {
+    "id" : "6bcbca1e-efd3-411d-9f7c-14b872444fce",
+    "director" : "Zack Snyder",
+    "title" : "Zack Snyder's Justice League",
+    "year" : 2021,
+    "actors" : [
+      "Henry Cavill",
+      "Gal Godot",
+      "Ezra Miller",
+      "Ben Affleck",
+      "Ray Fisher",
+      "Jason Momoa"
+    ]
+  }
+]
+```
+
+## Conclusion
+
+Summing up, in this article we introduced the Http4s ecosystem that helps us in building servers 
+serving API over HTTP. The library fully embraces the functional programming paradigm, using Cats 
+and Cats Effects as building blocks. So, we saw how easy is the definition of routes, handling path
+and query parameters, and how to encoding and decoding JSON bodies. Finally, we wired all the things
+ups, and we showed how to define and start a server instance. Hence, there is only one thing left:
+Try it on your own and enjoy pure functional programming HTTP APIs!
