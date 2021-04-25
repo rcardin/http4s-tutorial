@@ -626,12 +626,12 @@ will produce the following response, as expected:
 ## Addendum: Why We Need to Abstract Over the Effect
 
 One thing that we should have kept an eye on is the use of the abstract `F[_]` type constructor in 
-the routes definition, instead of the use of a concrete effect type, such as `IO`.
+the routes' definition, instead of the use of a concrete effect type, such as `IO`.
 
 First, why do we need to use an effect in routes definition? Well, we must remember that we are 
 using a library that is intended to embrace the purely functional programming paradigm. Hence, our
 code must adhere to the [substitution model](http://www.cs.cornell.edu/courses/cs312/2008sp/lectures/lec05.html),
-and we know for sure that every code producing any possible side-effect is not compliant to such
+and we know for sure that every code producing any possible side effect is not compliant to such a
 model. Besides, we know that reading from a database, or a file-system, and in general interacting
 with the outside world, potentially rises exceptions or produces different results every time it is
 executed.
