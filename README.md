@@ -628,6 +628,8 @@ will produce the following response, as expected:
 One thing that we should have kept an eye on is the use of the abstract `F[_]` type constructor in 
 the routes' definition, instead of the use of a concrete effect type, such as `IO`.
 
+### A (Very) Fast Introduction to The Effect Pattern
+
 First, why do we need to use an effect in routes definition? Well, we must remember that we are 
 using a library that is intended to embrace the purely functional programming paradigm. Hence, our
 code must adhere to the [substitution model](http://www.cs.cornell.edu/courses/cs312/2008sp/lectures/lec05.html),
@@ -638,8 +640,53 @@ executed.
 
 So, the functional programming paradigm overcomes this problem using the Effect Pattern. Instead of
 executing directly the code that may produce any side effect, we can enclose it in a special context
-that describes the possible side effect that code may produce, but doesn't effectively execute it.
-The execution is...TODO
+that describes the possible side effect that code may produce, but doesn't effectively execute it, 
+and the type the effect will produce:
+
+```scala
+val hw: IO[Unit] = IO(println("Hello world!"))
+```
+
+For example, the `IO[A]` effect from Cats Effect represents any kind of side effect, and the value
+it might produce. The above code doesn't print anything to the console, but it defers the execution 
+until it's possible. Besides, it says that it will produce a `Unit` value, once executed. The trick
+is in the definition of the `delay` method, which is called inside the smart constructor:
+
+```scala
+def delay[A](a: => A): IO[A]
+```
+
+So, when will the application print the "Hello world" message to the standard output? The answer is
+easy: the code will be executed once the method `unsafeRunSync` would be called:
+
+```scala
+hw.unsafeRunSync
+// Prints "Hello world!" to the standard output
+```
+
+If we want that the substitution model applies to the whole part of the application, the only 
+reasonable place to call the `unsafeRunSync` is in the `main` method, also called 
+_the end of the world_. Indeed, it's exactly what the `IOApp.run` method does for us.
+
+### Why Binding Route Definition to a Concrete Effect Is Awful
+
+So, why don't we use directly a concrete effect, such as the `IO` effect, in the routes' 
+definitions? Basically, there are two main reasons.
+
+First, if we abstract over the effect, we can easily control what kind of execution model we want to
+apply to our server. Will the server perform operation concurrently, or sequentially? In fact, there
+are different kinds of effect in the Cats Effect that model the above execution models, the `Sync` 
+type class for synchronous, blocking programming, and the `Async` type class for asynchronous, concurrent 
+programming. Notice that the `Async` type extends the `Sync` type.
+
+If we need to ensure at least some properties on the execution model applied to the effect, we can
+use the context bound syntax. For example, we defined our routes using an abstract effect `F` that
+has at least an associated `Sync` type class:
+
+```scala
+def movieRoutes[F[_] : Sync]: HttpRoutes[F] = ???
+```
+
 
 ## Conclusion
 
