@@ -1,12 +1,13 @@
 package in.rcard.http4s.tutorial.movie
 
 import cats.effect.Sync
+import cats.implicits.toBifunctorOps
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s._
 import org.http4s.circe.{jsonOf, _}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.dsl.impl.{OptionalQueryParamDecoderMatcher, QueryParamDecoderMatcher}
+import org.http4s.dsl.impl.{OptionalQueryParamDecoderMatcher, OptionalValidatingQueryParamDecoderMatcher, QueryParamDecoderMatcher, ValidatingQueryParamDecoderMatcher}
 import org.http4s.headers.`Content-Encoding`
 import org.http4s.implicits.http4sKleisliResponseSyntaxOptionT
 
@@ -18,9 +19,15 @@ object MovieApp {
   object DirectorQueryParamMatcher extends QueryParamDecoderMatcher[String]("director")
 
   implicit val yearQueryParamDecoder: QueryParamDecoder[Year] =
-    QueryParamDecoder[Int].map(Year.of)
+    QueryParamDecoder[Int].emap { y =>
+      Try(Year.of(y))
+        .toEither
+        .leftMap { tr =>
+          ParseFailure(tr.getMessage, tr.getMessage)
+        }
+    }
 
-  object YearQueryParamMatcher extends OptionalQueryParamDecoderMatcher[Year]("year")
+  object YearQueryParamMatcher extends OptionalValidatingQueryParamDecoderMatcher[Year]("year")
 
   case class Movie(id: String, title: String, year: Int, actors: List[String], director: String)
 
@@ -36,11 +43,19 @@ object MovieApp {
     val dsl = new Http4sDsl[F] {}
     import dsl._
     HttpRoutes.of[F] {
-      case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(year) =>
-        if ("Zack Snyder" == director && year.contains(Year.of(2021)))
-          Ok(List(snjl).asJson)
-        else
-          NotFound(s"There are no movies for director $director")
+      case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(maybeYear) =>
+        maybeYear match {
+          case Some(y) =>
+            y.fold(
+              _ => BadRequest("The given year is not valid"),
+              year =>
+                if ("Zack Snyder" == director && year == Year.of(2021))
+                  Ok(List(snjl).asJson)
+                else
+                  NotFound(s"There are no movies for director $director")
+            )
+          case None => NotFound(s"There are no movies for director $director")
+        }
       case GET -> Root / "movies" / UUIDVar(movieId) / "actors" =>
         if ("6bcbca1e-efd3-411d-9f7c-14b872444fce" == movieId.toString)
           Ok(

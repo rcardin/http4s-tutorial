@@ -311,7 +311,39 @@ As we may imagine, inside the response there is place for the status, the header
 However, we don't find the body of the response, because the effect was not yet evaluated.
 
 In addition, inside the `org.http4s.Status` companion object we can find the functions to build 
-a response with every other HTTP status listed in the IANA specification.
+a response with every other HTTP status listed in the IANA specification. Suppose, that
+we want to implement some type of validation on a query parameter. 
+
+For example, we want return a _Bad Request_ HTTP Status if the query parameter `year` doesn't 
+represent a positive number. First, we need change the type of matcher we need to use, introducing
+the validation:
+
+```scala
+implicit val yearQueryParamDecoder: QueryParamDecoder[Year] =
+  QueryParamDecoder[Int].emap { y =>
+    Try(Year.of(y))
+      .toEither
+      .leftMap { tr =>
+        ParseFailure(tr.getMessage, tr.getMessage)
+      }
+  }
+object YearQueryParamMatcher extends OptionalValidatingQueryParamDecoderMatcher[Year]("year")
+```
+
+Then, we can introduce the code handling the failure with a `BadRequest` HTTP Status:
+
+```scala
+case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(maybeYear) =>
+  maybeYear match {
+    case Some(y) =>
+      y.fold(
+        _ => BadRequest("The given year is not valid"),
+        year =>
+          // Proceeding with the business logic
+      )
+    case None => NotFound(s"There are no movies for director $director")
+  }
+```
 
 ### Headers and Cookies
 
@@ -687,6 +719,12 @@ has at least an associated `Sync` type class:
 def movieRoutes[F[_] : Sync]: HttpRoutes[F] = ???
 ```
 
+Moreover, the use of a type constructor instead of a concrete effect make the whole architecture 
+easier to test. Binding to a concrete effect forces us to use it also in the tests, making test more
+difficult to write.
+
+For example, in test, we can bind `F[_]` to the `Reader` monad, instead, or any other type 
+constructor eventually satisfying the constraints given within the context bound.
 
 ## Conclusion
 
