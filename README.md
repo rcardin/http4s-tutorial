@@ -284,7 +284,7 @@ Obviously, we can instantiate a new `ResponseCookie`, giving the constructor all
 
 ### Access to the Request Body
 
-So, we should know everything we need to match routes. Now, it's time to understand how to decode and encode structured information associated with the body of a `Request` or of a `Response`.
+Upon now, we should know everything we need to match routes. Now, it's time to understand how to decode and encode structured information associated with the body of a `Request` or of a `Response`.
 
 As we initially said, we want to let our application expose an API to add a new `Director` in the system. Such an API will look something similar to the following:
 
@@ -302,31 +302,31 @@ First thing first, to access its body, we need to access directly to the `Reques
 case req @ POST -> Root / "directors" => ???
 ```
 
-Then, the `Request[F]` object has a `body` attribute of type `EntityBody[F]`, which is a type alias for `Stream[F, Byte]`. As the HTTP protocol defines, the body of an HTTP request is a stream of bytes. The http4s library uses the [`fs2.io`](https://fs2.io/#/) library as stream implementation. Indeed, this library also uses the Typelevel stack to implement its functional vision of streams.
+Then, the `Request[F]` object has a `body` attribute of type `EntityBody[F]`, which is a type alias for `Stream[F, Byte]`. **As the HTTP protocol defines, the body of an HTTP request is a stream of bytes**. The http4s library uses the [`fs2.io`](https://fs2.io/#/) library as stream implementation. Indeed, this library also uses the Typelevel stack (Cats) to implement its functional vision of streams.
 
 ### Decoding the Request Body Using Circe
 
-In detail, every `Request[F]` extends the `Media[F]` trait. This trait exposes many practical methods dealing with the body and some header of a request, and the most interesting is the following function:
+In detail, every `Request[F]` extends the `Media[F]` trait. This trait exposes many practical methods dealing with the body of a request, and the most interesting is the following:
 
 ```scala
-final def as[A](implicit F: MonadThrow[F], decoder: EntityDecoder[F, A]): F[A] =
+final def as[A](implicit F: MonadThrow[F], decoder: EntityDecoder[F, A]): F[A] = ???
 ```
 
-So, the `as` function lets us decode a request body as a type `A`. To do so, the function uses an `EntityDecoder[F, A]`, which we must provide in the context as an implicit object.
+The `as` function decodes a request body as a type `A`. using an `EntityDecoder[F, A]`, which we must provide in the context as an implicit object.
 
-An `EntityDecoder` (and its counterpart `EntityEncoder`) allows us to deal with the streaming nature of the data in an HTTP body. In addition, decoders and encoders relate directly to the `Content-Type` declared as an HTTP Header in the request/response. Indeed, we need a different kinds of decoders and encoders for every type of content.
+**The `EntityDecoder` (and its counterpart `EntityEncoder`) allows us to deal with the streaming nature of the data in an HTTP body**. In addition, decoders and encoders relate directly to the `Content-Type` declared as an HTTP Header in the request/response. Indeed, we need a different kind of decoder and encoder for every type of content.
 
 The http4s library ships with decoders and encoders for a limited type of contents, such as `String`, `File`, `InputStream`, and manages more complex contents using plugin libraries.
 
-In our example, the request contains a new director in JSON format. To deal with JSON body, the most frequent choice is to use the Circe plugin:
+In our example, the request contains a new director in JSON format. **To deal with JSON body, the most frequent choice is to use the Circe plugin**:
 
 ```sbt
 "org.http4s" %% "http4s-circe" % 0.21.23,
 ```
 
-The primary type provided by the circe library to manipulate JSON information is the `io.circeJson` type. Hence, the `http4s-circe` module defines the type `EntityDecoder[Json]` and `EntityEncoder[Json]`, which is all we need to translate a request and a response body into an instance of `JSon`.
+The primary type provided by the Circe library to manipulate JSON information is the `io.circe.Json` type. Hence, the `http4s-circe` module defines the types `EntityDecoder[Json]` and `EntityEncoder[Json]`, which are all we need to translate a request and a response body into an instance of `Json`.
 
-However, `Json` type translate directly into JSON literals, such as `json"""{"firstName": "Zack", "lastName": "Snyder"}"""`, and we don't really want to deal with them. Instead, we usually use case classes to represent information carried by a request or response body. In our example, the JSON representation of a director will translate in the following case class:
+However, `Json` type translate directly into JSON literals, such as `json"""{"firstName": "Zack", "lastName": "Snyder"}"""`, and we don't really want to deal with them. Instead, we usually want a case class to represent JSON information. In our example, the JSON representation of a director could translate in the following case class:
 
 ```scala
 case class Director(firstName: String, lastName: String)
@@ -334,7 +334,7 @@ case class Director(firstName: String, lastName: String)
 
 First, we decode the incoming request automatically into an instance of a `Json` object using the `EntityDecoder[Json]` type. However, we need to do a step beyond to obtain an object of type `Director`. In detail, Circe needs an instance of the type `io.circe.Decoder[Director]` to decode a `Json` object into a `Director` object.
 
-Hence, we can provide the instance of the `io.circe.Decoder[Director]` simply adding the import to `io.circe.generic.auto._`, which lets Circe automatically derive for us encoders and decoders. The derivation uses field names of case classes as key names in JSON objects and vice-versa. As the last step, we need to connect the type `Decoder[Director]` to the type `EntityDecoder[Json]`, and this is precisely the work that the module `http4s-circe` does for us through the function `jsonOf`:
+We can provide the instance of the `io.circe.Decoder[Director]` simply adding the import to `io.circe.generic.auto._`, which lets Circe automatically derive for us encoders and decoders. The derivation uses field names of case classes as key names in JSON objects and vice-versa. As the last step, we need to connect the type `Decoder[Director]` to the type `EntityDecoder[Json]`, and this is precisely the work that the module `http4s-circe` does for us through the function `jsonOf`:
 
 ```scala
 implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director]
@@ -358,13 +358,13 @@ def directorRoutes[F[_]: Sync]: HttpRoutes[F] = {
 
 ### Encoding the Response Body Using Circe
 
-The encoding process of a response body is very similar to the one described for decoding a request body. For example, we go forward with the API getting all the films directed by a specific director during a year:
+The encoding process of a response body is very similar to the one described for decoding a request body. As the reference example, we go forward with the API getting all the films directed by a specific director during a year:
 
 ```
 GET /movies?director=Zack%20Snyder&year=2021
 ```
 
-Hence, we need to model the response of such API, which will be a list of movies:
+Hence, we need to model the response of such API, which will be a list of movies with their details:
 
 ```json
 [
@@ -384,7 +384,7 @@ Hence, we need to model the response of such API, which will be a list of movies
 ]
 ```
 
-Hence, we can model the above information using a case class:
+We can model the above information using a case class:
 
 ```scala
 case class Movie(title: String, year: Int, actors: List[String], director: String)
@@ -392,7 +392,7 @@ case class Movie(title: String, year: Int, actors: List[String], director: Strin
 
 Easy peasy lemon squeezy. As for decoders, we need first to transform our class `Movie` into an instance of the `Json` type, using an instance of `io.circe.Encoder[Movie]`. Again, the `io.circe.generic.auto._` import allows us to automagically define such an encoder.
 
-Instead, we can perform the actual conversion from the `Movie` type to `Json` using the extension method `asJson`, defined on all the types that have an instance of the `Encoder` type class that we have just created for our `Movie` type:
+Instead, we can perform the actual conversion from the `Movie` type to `Json` using the extension method `asJson`, defined on all the types that have an instance of the `Encoder` type class:
 
 ```scala
 package object syntax {
@@ -402,7 +402,7 @@ package object syntax {
 }
 ```
 
-As we can see, the above method comes into the scope importing the `io.circe.syntax._` package. As we previously said for decoders, the library http4s-circe provides the type `EntityEncoder[Json]`, with the import `org.http4s.circe._`.
+As we can see, the above method comes into the scope importing the `io.circe.syntax._` package. As we previously said for decoders, the module `http4s-circe` provides the type `EntityEncoder[Json]`, with the import `org.http4s.circe._`.
 
 Now, we can complete our API definition, responding with the needed information:
 
