@@ -427,16 +427,16 @@ def movieRoutes[F[_]: Sync]: HttpRoutes[F] = {
 
 ## Wiring All Together
 
-We learned how to define a route, read path and parameter variables, read and write HTTP bodies, and deal with headers and cookies. Now, it's time to wire altogether, defining and starting the server serving all our routes.
+We learned how to define a route, read path and parameter variables, read and write HTTP bodies, and deal with headers and cookies. Now, it's time to wire altogether, defining and starting a server serving all our routes.
 
-The http4s library supports many types of servers. We can look at the integration matrix directly in the [official documentation](https://http4s.org/v0.21/integrations/). However, the natively supported server is [blaze](https://github.com/http4s/blaze).
+**The http4s library supports many types of servers**. We can look at the integration matrix directly in the [official documentation](https://http4s.org/v0.21/integrations/). However, the natively supported server is [blaze](https://github.com/http4s/blaze).
 
 We can instantiate a new blaze server using the dedicated builder, `BlazeServerBuilder`, which takes as inputs the `HttpRoutes` (or the `HttpApp`), and the host and port serving the given routes:
 
 ```scala
 val movieApp = MovieApp.allRoutesComplete[IO]
 BlazeServerBuilder[IO](global)
-  .bindHttp(8080,"localhost")
+  .bindHttp(8080, "localhost")
   .withHttpApp(movieApp)
   // ...it's not finished yet
 ```
@@ -453,19 +453,17 @@ BlazeServerBuilder[IO](global)
   .withHttpApp(apis)
 ```
 
-As we can see, the `Router` accepts a list of mappings from a `String` root to an `HttpRoutes` type. Moreover, we can omit the call to the `bindHttp`. If so, blaze will serve the APIs using port `8080` on the `localhost` address.
+As we can see, the `Router` accepts a list of mappings from a `String` root to an `HttpRoutes` type. Moreover, we can omit the call to the `bindHttp`, using the port `8080` as default on the `localhost` address.
 
 Moreover, the builder needs an instance of a `scala.concurrent.ExecutionContext` to handle incoming requests concurrently. Finally, we need to bind the builder to an effect because the execution of the service can lead to side effects itself. In our example, we bind the effect to the `IO` monad from the library Cats Effect.
 
 ### Executing the Server
 
-Once we configured the basic properties of a `BlazeServerBuilder`, we need to run it. Since we chose to use the `IO` monad as an effect, the easier way to run an application using the blaze server is to run the service inside an `IOApp`, provided by the cats-effect library, too.
+Once we configured the basic properties, we need to run the server. Since we chose to use the `IO` monad as an effect, the easier way to run an application is inside an `IOApp`, provided by the Cats Effect library, too.
 
 The `IOApp` is a utility type that allows us to run applications that use the `IO` effect. Moreover, inside the `IOApp`, the Cats Effect library provides us for free two implicit instances needed by the builder to work: A `ContextShift[IO]` type and the `Timer[IO]` type.
 
-When it's up, the server listens to incoming requests on a port. If the server stops, it must release the port and close any other resource it's using. This is precisely the definition of the [`Resource`](https://typelevel.org/cats-effect/docs/2.x/datatypes/resource) type from the Cats Effect library. Hence, we can think about `Resource`s as the `AutoCloseable` type in Java type.
-
-So, we can use the builder to create a `Resource`:
+When it's up, the server starts listening to incoming requests. **If the server stops, it must release the port and close any other resource it's using, and this is precisely the definition of the [`Resource`](https://typelevel.org/cats-effect/docs/2.x/datatypes/resource) type** from the Cats Effect library (we can think about `Resource`s as the `AutoCloseable` type in Java type):
 
 ```scala
 object Main extends IOApp {
@@ -481,7 +479,7 @@ object Main extends IOApp {
 }
 ```
 
-Once we have a `Resource` to handle, we can `use` its content. In this example, we say that whatever the resource is, we want to produce an effect that never terminates. In this way, the server can accept new requests over and over. Finally, the last statement maps the result of the `IO` into the given value, `ExitCode.Success`.
+Once we have a `Resource` to handle, we can `use` its content. In this example, we say that whatever the resource is, we want to produce an effect that never terminates. In this way, the server can accept new requests over and over. Finally, the last statement maps the result of the `IO` into the given value, `ExitCode.Success`, needed by the `IOApp`.
 
 ### Try It Out!
 
@@ -506,21 +504,21 @@ Once the server is up and running, we can try our freshly new APIs with any HTTP
 ]
 ```
 
-## Addendum: Why We Need to Abstract Over the Effect
+## Addendum: Why We Need to Abstract over the Effect
 
-We should have kept an eye on the use of the abstract `F[_]` type constructor in the routes' definition, instead of the use of a concrete effect type, such as `IO`.
+We should have kept an eye on the use of the abstract `F[_]` type constructor in the routes' definition, instead of the use of a concrete effect type, such as `IO`. Let's see why.
 
 ### A (Very) Fast Introduction to the Effect Pattern
 
 First, why do we need to use an effect in routes definition? We must remember that we are using a library that is intended to embrace the purely functional programming paradigm. Hence, our code must adhere to the [substitution model](http://www.cs.cornell.edu/courses/cs312/2008sp/lectures/lec05.html), and we know for sure that every code producing any possible side effect is not compliant with such a model. Besides, we know that reading from a database or a file system, and in general, interacting with the outside world potentially raises exceptions or produces different results every time it is executed.
 
-So, the functional programming paradigm overcomes this problem using the Effect Pattern. Instead of executing directly the code that may produce any side effect, we can enclose it in a particular context that describes the possible side effect the code may have but doesn't effectively execute and the type the effect will produce:
+So, the functional programming paradigm overcomes this problem using the Effect Pattern. Instead of executing directly the code that may produce any side effect, **we can enclose it in a particular context that describes the possible side effect but doesn't effectively execute it, together with the type the effect will produce**:
 
 ```scala
 val hw: IO[Unit] = IO(println("Hello world!"))
 ```
 
-For example, the `IO[A]` effect from the Cats Effect library represents any kind of side effect and the value it might produce. The above code doesn't print anything to the console, but it defers the execution until it's possible. Besides, it says that it will produce a `Unit` value once executed. The trick is in the definition of the `delay` method, which is called inside the smart constructor:
+For example, the `IO[A]` effect from the Cats Effect library represents any kind of side effect and the value of type `A` it might produce. The above code doesn't print anything to the console, but it defers the execution until it's possible. Besides, it says that it will produce a `Unit` value once executed. The trick is in the definition of the `delay` method, which is called inside the smart constructor:
 
 ```scala
 def delay[A](a: => A): IO[A]
@@ -533,30 +531,29 @@ hw.unsafeRunSync
 // Prints "Hello world!" to the standard output
 ```
 
-If we want that the substitution model applies to the whole part of the application, the only appropriate place to call the `unsafeRunSync` is in the `main` method, also called_the end of the world_. Indeed, it's precisely what the `IOApp.run` method does for us.
+If we want that the substitution model applies to the whole part of the application, the only appropriate place to call the `unsafeRunSync` is in the `main` method, also called _the end of the world_. Indeed, it's precisely what the `IOApp.run` method does for us.
 
 ### Why Binding Route Definition to a Concrete Effect Is Awful
 
-
 So, why don't we directly use a concrete effect, such as the `IO` effect, in the routes' definitions? Basically, there are two main reasons.
 
-First, if we abstract the effect, we can easily control what kind of execution model we want to apply to our server. Will the server perform operation concurrently or sequentially? In fact, there are different kinds of effects in the Cats Effect that model the above execution models, the `Sync`type class for synchronous, blocking programming, and the `Async` type class for asynchronous, concurrent programming. Notice that the `Async` type extends the `Sync` type.
+First, if we abstract the effect, **we can easily control what kind of execution model we want to apply to our server**. Will the server perform operation concurrently or sequentially? In fact, there are different kinds of effects in the Cats Effect that model the above execution models, the `Sync` type class for synchronous, blocking programming, and the `Async` type class for asynchronous, concurrent programming. Notice that the `Async` type extends the `Sync` type.
 
-If we need to ensure at least some properties on the execution model applied to the effect, we can use the context-bound syntax. For example, we defined our routes using an abstract effect `F` that has at least an associated `Sync` type class:
+**If we need to ensure at least some properties on the execution model apply to the effect, we can use the context-bound syntax**. For example, we defined our routes using an abstract effect `F` that has at least an associated `Sync` type class:
 
 ```scala
 def movieRoutes[F[_] : Sync]: HttpRoutes[F] = ???
 ```
 
-Moreover, using a type constructor instead of a concrete effect makes the whole architecture easier to test. Binding to a concrete effect forces us to use it in the tests, making tests more challenging to write.
+Moreover, **using a type constructor instead of a concrete effect makes the whole architecture easier to test**. Binding to a concrete effect forces us to use it in the tests, making tests more challenging to write.
 
 For example, in tests, we can bind `F[_]` to the `Reader` monad, instead, or any other type constructor, eventually satisfying the constraints given within the context-bound.
 
 ## Conclusion
 
-In this article, we introduced the Http4s ecosystem that helps us build servers serving API over HTTP. The library fully embraces the functional programming paradigm, using Cats and Cats Effects as building blocks.
+In this article, we introduced the http4s ecosystem that helps us serving API over HTTP. The library fully embraces the functional programming paradigm, using Cats and Cats Effects as building blocks.
 
-So, we saw how easy the definition of routes, handling path and query parameters, and how to encode and decode JSON bodies. Finally, we wired all the things up, and we showed how to define and start a server instance.
+So, we saw how easy is the definition of routes, handling path and query parameters, and how to encode and decode JSON bodies. Finally, we wired all the things up, and we showed how to define and start a server.
 
 Even though there many other features that this introductive tutorial doesn't address, such as [Middlewares](https://http4s.org/v0.21/middleware/), [Streaming](https://http4s.org/v0.21/streaming/), [Authentication](https://http4s.org/v0.21/auth/), we could now build many non-trivial use cases concerning the development of HTTP API.
 
