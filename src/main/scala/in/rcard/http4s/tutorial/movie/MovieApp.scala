@@ -1,13 +1,14 @@
 package in.rcard.http4s.tutorial.movie
 
-import cats.effect.Sync
+import cats.effect.kernel.Concurrent
 import cats.implicits.toBifunctorOps
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s._
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.circe.{jsonOf, _}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.dsl.impl.{OptionalQueryParamDecoderMatcher, OptionalValidatingQueryParamDecoderMatcher, QueryParamDecoderMatcher, ValidatingQueryParamDecoderMatcher}
+import org.http4s.dsl.impl.{OptionalValidatingQueryParamDecoderMatcher, QueryParamDecoderMatcher}
 import org.http4s.headers.`Content-Encoding`
 import org.http4s.implicits.http4sKleisliResponseSyntaxOptionT
 
@@ -39,7 +40,7 @@ object MovieApp {
     "Zack Snyder"
   )
 
-  def movieRoutes[F[_] : Sync]: HttpRoutes[F] = {
+  def movieRoutes[F[_] : Concurrent]: HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
     HttpRoutes.of[F] {
@@ -86,7 +87,7 @@ object MovieApp {
     }
   }
 
-  def directorRoutes[F[_] : Sync]: HttpRoutes[F] = {
+  def directorRoutes[F[_] : Concurrent]: HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
     implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director]
@@ -107,12 +108,12 @@ object MovieApp {
     }
   }
 
-  def allRoutes[F[_] : Sync]: HttpRoutes[F] = {
+  def allRoutes[F[_] : Concurrent]: HttpRoutes[F] = {
     import cats.syntax.semigroupk._
     movieRoutes <+> directorRoutes
   }
 
-  def allRoutesComplete[F[_] : Sync]: HttpApp[F] = {
+  def allRoutesComplete[F[_] : Concurrent]: HttpApp[F] = {
     allRoutes.orNotFound
   }
 }
