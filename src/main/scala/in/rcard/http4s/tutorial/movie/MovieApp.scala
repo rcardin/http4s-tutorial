@@ -1,6 +1,7 @@
 package in.rcard.http4s.tutorial.movie
 
-import cats.effect.Sync
+import cats.effect.kernel.Async
+import cats.effect.{Concurrent, Sync}
 import cats.implicits.toBifunctorOps
 import io.circe.generic.auto._
 import io.circe.syntax._
@@ -10,6 +11,7 @@ import org.http4s.dsl.Http4sDsl
 import org.http4s.dsl.impl.{OptionalQueryParamDecoderMatcher, OptionalValidatingQueryParamDecoderMatcher, QueryParamDecoderMatcher, ValidatingQueryParamDecoderMatcher}
 import org.http4s.headers.`Content-Encoding`
 import org.http4s.implicits.http4sKleisliResponseSyntaxOptionT
+import org.typelevel.ci.CIString
 
 import java.time.Year
 import scala.util.Try
@@ -86,33 +88,33 @@ object MovieApp {
     }
   }
 
-  def directorRoutes[F[_] : Sync]: HttpRoutes[F] = {
+  def directorRoutes[F[_] : Async]: HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
-    implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director]
+    implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director] // most calls require Sync, but this requires Concurrent => require Async
     import cats.syntax.flatMap._
     import cats.syntax.functor._
     HttpRoutes.of[F] {
       case GET -> Root / "directors" / DirectorVar(director) =>
         if (director == Director("Zack", "Snyder"))
-          Ok(Director("Zack", "Snyder").asJson, Header("My-Custom-Header", "value"))
+          Ok(Director("Zack", "Snyder").asJson, Header.Raw(CIString("My-Custom-Header"), "value"))
         else
           NotFound(s"No director called $director found")
       case req@POST -> Root / "directors" =>
         for {
           _ <- req.as[Director]
-          res <- Ok(`Content-Encoding`(ContentCoding.gzip))
+          res <- Ok.headers(`Content-Encoding`(ContentCoding.gzip))
             .map(_.addCookie(ResponseCookie("My-Cookie", "value")))
         } yield res
     }
   }
 
-  def allRoutes[F[_] : Sync]: HttpRoutes[F] = {
+  def allRoutes[F[_] : Async]: HttpRoutes[F] = {
     import cats.syntax.semigroupk._
     movieRoutes <+> directorRoutes
   }
 
-  def allRoutesComplete[F[_] : Sync]: HttpApp[F] = {
+  def allRoutesComplete[F[_] : Async]: HttpApp[F] = {
     allRoutes.orNotFound
   }
 }
