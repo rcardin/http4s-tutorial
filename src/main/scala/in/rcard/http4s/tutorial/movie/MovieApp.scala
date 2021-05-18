@@ -1,14 +1,14 @@
 package in.rcard.http4s.tutorial.movie
 
+import cats.effect.Sync
 import cats.effect.kernel.Async
-import cats.effect.{Concurrent, Sync}
 import cats.implicits.toBifunctorOps
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s._
 import org.http4s.circe.{jsonOf, _}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.dsl.impl.{OptionalQueryParamDecoderMatcher, OptionalValidatingQueryParamDecoderMatcher, QueryParamDecoderMatcher, ValidatingQueryParamDecoderMatcher}
+import org.http4s.dsl.impl.{OptionalValidatingQueryParamDecoderMatcher, QueryParamDecoderMatcher}
 import org.http4s.headers.`Content-Encoding`
 import org.http4s.implicits.http4sKleisliResponseSyntaxOptionT
 import org.typelevel.ci.CIString
