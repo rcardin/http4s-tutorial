@@ -31,7 +31,9 @@ object MovieApp {
 
   object YearQueryParamMatcher extends OptionalValidatingQueryParamDecoderMatcher[Year]("year")
 
-  case class Movie(id: String, title: String, year: Int, actors: List[String], director: String)
+  type Actor = String
+
+  case class Movie(id: String, title: String, year: Int, actors: List[Actor], director: String)
 
   val snjl: Movie = Movie(
     "6bcbca1e-efd3-411d-9f7c-14b872444fce",
@@ -42,7 +44,7 @@ object MovieApp {
   )
 
   def movieRoutes[F[_] : Sync]: HttpRoutes[F] = {
-    val dsl = new Http4sDsl[F] {}
+    val dsl = Http4sDsl[F]
     import dsl._
     HttpRoutes.of[F] {
       case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(maybeYear) =>
@@ -89,7 +91,7 @@ object MovieApp {
   }
 
   def directorRoutes[F[_] : Async]: HttpRoutes[F] = {
-    val dsl = new Http4sDsl[F] {}
+    val dsl = Http4sDsl[F]
     import dsl._
     implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director] // most calls require Sync, but this requires Concurrent => require Async
     import cats.syntax.flatMap._
