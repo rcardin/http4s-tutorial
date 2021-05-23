@@ -1,5 +1,4 @@
 package in.rcard.http4s.tutorial.movie
-
 import cats.effect.Sync
 import cats.effect.kernel.Async
 import cats.implicits.toBifunctorOps
@@ -18,6 +17,21 @@ import scala.util.Try
 
 object MovieApp {
 
+  type Actor = String
+
+  case class Movie(id: String, title: String, year: Int, actors: List[Actor], director: String)
+
+  case class Director(firstName: String, lastName: String)
+
+  val snjl: Movie = Movie(
+    "6bcbca1e-efd3-411d-9f7c-14b872444fce",
+    "Zack Snyder's Justice League",
+    2021,
+    List("Henry Cavill", "Gal Godot", "Ezra Miller", "Ben Affleck", "Ray Fisher", "Jason Momoa"),
+
+    "Zack Snyder"
+  )
+
   object DirectorQueryParamMatcher extends QueryParamDecoderMatcher[String]("director")
 
   implicit val yearQueryParamDecoder: QueryParamDecoder[Year] =
@@ -31,17 +45,6 @@ object MovieApp {
 
   object YearQueryParamMatcher extends OptionalValidatingQueryParamDecoderMatcher[Year]("year")
 
-  type Actor = String
-
-  case class Movie(id: String, title: String, year: Int, actors: List[Actor], director: String)
-
-  val snjl: Movie = Movie(
-    "6bcbca1e-efd3-411d-9f7c-14b872444fce",
-    "Zack Snyder's Justice League",
-    2021,
-    List("Henry Cavill", "Gal Godot", "Ezra Miller", "Ben Affleck", "Ray Fisher", "Jason Momoa"),
-    "Zack Snyder"
-  )
 
   def movieRoutes[F[_] : Sync]: HttpRoutes[F] = {
     val dsl = Http4sDsl[F]
@@ -76,8 +79,6 @@ object MovieApp {
           NotFound(s"No movie with id $movieId found")
     }
   }
-
-  case class Director(firstName: String, lastName: String)
 
   object DirectorVar {
     def unapply(str: String): Option[Director] = {
