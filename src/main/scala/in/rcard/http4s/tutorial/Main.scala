@@ -12,8 +12,8 @@ object Main extends IOApp {
   def run(args: List[String]): IO[ExitCode] = {
 
     val apis = Router(
-      "/api/v1" -> MovieApp.movieRoutes[IO],
-      "/api/v2" -> MovieApp.directorRoutes[IO]
+      "/api" -> MovieApp.movieRoutes[IO],
+      "/api/private" -> MovieApp.directorRoutes[IO]
     ).orNotFound
 
     BlazeServerBuilder[IO](global)
