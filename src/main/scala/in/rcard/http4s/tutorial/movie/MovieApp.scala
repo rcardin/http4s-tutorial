@@ -1,5 +1,5 @@
 package in.rcard.http4s.tutorial.movie
-import cats.effect.Sync
+import cats.Monad
 import cats.effect.kernel.Async
 import cats.implicits.toBifunctorOps
 import io.circe.generic.auto._
@@ -21,7 +21,9 @@ object MovieApp {
 
   case class Movie(id: String, title: String, year: Int, actors: List[Actor], director: String)
 
-  case class Director(firstName: String, lastName: String)
+  case class Director(firstName: String, lastName: String) {
+    override def toString: String = s"$firstName $lastName"
+  }
 
   val snjl: Movie = Movie(
     "6bcbca1e-efd3-411d-9f7c-14b872444fce",
@@ -46,7 +48,7 @@ object MovieApp {
   object YearQueryParamMatcher extends OptionalValidatingQueryParamDecoderMatcher[Year]("year")
 
 
-  def movieRoutes[F[_] : Sync]: HttpRoutes[F] = {
+  def movieRoutes[F[_] : Monad]: HttpRoutes[F] = {
     val dsl = Http4sDsl[F]
     import dsl._
     HttpRoutes.of[F] {
@@ -91,6 +93,8 @@ object MovieApp {
     }
   }
 
+  val directors: Map[Actor, Director] = Map("Zack Snyder" -> Director("Zack", "Snyder"))
+
   def directorRoutes[F[_] : Async]: HttpRoutes[F] = {
     val dsl = Http4sDsl[F]
     import dsl._
@@ -99,10 +103,10 @@ object MovieApp {
     import cats.syntax.functor._
     HttpRoutes.of[F] {
       case GET -> Root / "directors" / DirectorVar(director) =>
-        if (director == Director("Zack", "Snyder"))
-          Ok(Director("Zack", "Snyder").asJson, Header.Raw(CIString("My-Custom-Header"), "value"))
-        else
-          NotFound(s"No director called $director found")
+        directors.get(director.toString) match {
+          case Some(dir) => Ok(dir.asJson, Header.Raw(CIString("My-Custom-Header"), "value"))
+          case _ => NotFound(s"No director called $director found")
+        }
       case req@POST -> Root / "directors" =>
         for {
           _ <- req.as[Director]
