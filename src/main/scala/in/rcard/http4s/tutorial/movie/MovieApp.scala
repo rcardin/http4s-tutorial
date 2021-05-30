@@ -1,6 +1,6 @@
 package in.rcard.http4s.tutorial.movie
 import cats.Monad
-import cats.effect.kernel.Async
+import cats.effect.kernel.Concurrent
 import cats.implicits.toBifunctorOps
 import io.circe.generic.auto._
 import io.circe.syntax._
@@ -13,6 +13,7 @@ import org.http4s.implicits.http4sKleisliResponseSyntaxOptionT
 import org.typelevel.ci.CIString
 
 import java.time.Year
+import scala.collection.mutable
 import scala.util.Try
 
 object MovieApp {
@@ -93,9 +94,10 @@ object MovieApp {
     }
   }
 
-  val directors: Map[Actor, Director] = Map("Zack Snyder" -> Director("Zack", "Snyder"))
+  val directors: mutable.Map[Actor, Director] =
+    mutable.Map("Zack Snyder" -> Director("Zack", "Snyder"))
 
-  def directorRoutes[F[_] : Async]: HttpRoutes[F] = {
+  def directorRoutes[F[_] : Concurrent]: HttpRoutes[F] = {
     val dsl = Http4sDsl[F]
     import dsl._
     implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director] // most calls require Sync, but this requires Concurrent => require Async
@@ -109,19 +111,20 @@ object MovieApp {
         }
       case req@POST -> Root / "directors" =>
         for {
-          _ <- req.as[Director]
+          director <- req.as[Director]
+          _ = directors.addOne(director.toString, director)
           res <- Ok.headers(`Content-Encoding`(ContentCoding.gzip))
             .map(_.addCookie(ResponseCookie("My-Cookie", "value")))
         } yield res
     }
   }
 
-  def allRoutes[F[_] : Async]: HttpRoutes[F] = {
+  def allRoutes[F[_] : Concurrent]: HttpRoutes[F] = {
     import cats.syntax.semigroupk._
     movieRoutes <+> directorRoutes
   }
 
-  def allRoutesComplete[F[_] : Async]: HttpApp[F] = {
+  def allRoutesComplete[F[_] : Concurrent]: HttpApp[F] = {
     allRoutes.orNotFound
   }
 }
