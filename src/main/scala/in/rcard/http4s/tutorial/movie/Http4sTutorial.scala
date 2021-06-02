@@ -1,26 +1,29 @@
 package in.rcard.http4s.tutorial.movie
-import cats.Monad
-import cats.effect.kernel.Concurrent
-import cats.implicits.toBifunctorOps
+
+import cats._
+import cats.effect._
+import cats.implicits._
+import org.http4s.circe._
+import org.http4s._
 import io.circe.generic.auto._
 import io.circe.syntax._
-import org.http4s._
-import org.http4s.circe.{jsonOf, _}
-import org.http4s.dsl.Http4sDsl
-import org.http4s.dsl.impl.{OptionalValidatingQueryParamDecoderMatcher, QueryParamDecoderMatcher}
-import org.http4s.headers.`Content-Encoding`
-import org.http4s.implicits.http4sKleisliResponseSyntaxOptionT
+import org.http4s.dsl._
+import org.http4s.dsl.impl._
+import org.http4s.headers._
+import org.http4s.implicits._
+import org.http4s.server._
+import org.http4s.server.blaze.BlazeServerBuilder
 import org.typelevel.ci.CIString
 
 import java.time.Year
 import scala.collection.mutable
 import scala.util.Try
 
-object MovieApp {
+object Http4sTutorial extends IOApp {
 
   type Actor = String
 
-  case class Movie(id: String, title: String, year: Int, actors: List[Actor], director: String)
+  case class Movie(id: String, title: String, year: Int, actors: List[String], director: String)
 
   case class Director(firstName: String, lastName: String) {
     override def toString: String = s"$firstName $lastName"
@@ -31,7 +34,6 @@ object MovieApp {
     "Zack Snyder's Justice League",
     2021,
     List("Henry Cavill", "Gal Godot", "Ezra Miller", "Ben Affleck", "Ray Fisher", "Jason Momoa"),
-
     "Zack Snyder"
   )
 
@@ -48,7 +50,6 @@ object MovieApp {
 
   object YearQueryParamMatcher extends OptionalValidatingQueryParamDecoderMatcher[Year]("year")
 
-
   def movieRoutes[F[_] : Monad]: HttpRoutes[F] = {
     val dsl = Http4sDsl[F]
     import dsl._
@@ -58,11 +59,8 @@ object MovieApp {
           case Some(y) =>
             y.fold(
               _ => BadRequest("The given year is not valid"),
-              year =>
-                if ("Zack Snyder" == director && year == Year.of(2021))
-                  Ok(List(snjl).asJson)
-                else
-                  NotFound(s"There are no movies for director $director")
+              year => Ok(List(snjl).asJson)
+              // Proceeding with the business logic
             )
           case None => NotFound(s"There are no movies for director $director")
         }
@@ -100,9 +98,7 @@ object MovieApp {
   def directorRoutes[F[_] : Concurrent]: HttpRoutes[F] = {
     val dsl = Http4sDsl[F]
     import dsl._
-    implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director] // most calls require Sync, but this requires Concurrent => require Async
-    import cats.syntax.flatMap._
-    import cats.syntax.functor._
+    implicit val directorDecoder: EntityDecoder[F, Director] = jsonOf[F, Director]
     HttpRoutes.of[F] {
       case GET -> Root / "directors" / DirectorVar(director) =>
         directors.get(director.toString) match {
@@ -112,7 +108,7 @@ object MovieApp {
       case req@POST -> Root / "directors" =>
         for {
           director <- req.as[Director]
-          _ = directors.addOne(director.toString, director)
+          _ = directors.put(director.toString, director)
           res <- Ok.headers(`Content-Encoding`(ContentCoding.gzip))
             .map(_.addCookie(ResponseCookie("My-Cookie", "value")))
         } yield res
@@ -120,11 +116,27 @@ object MovieApp {
   }
 
   def allRoutes[F[_] : Concurrent]: HttpRoutes[F] = {
-    import cats.syntax.semigroupk._
-    movieRoutes <+> directorRoutes
+    movieRoutes[F] <+> directorRoutes[F]
   }
 
   def allRoutesComplete[F[_] : Concurrent]: HttpApp[F] = {
     allRoutes.orNotFound
+  }
+
+  import scala.concurrent.ExecutionContext.global
+
+  override def run(args: List[String]): IO[ExitCode] = {
+
+    val apis = Router(
+      "/api" -> Http4sTutorial.movieRoutes[IO],
+      "/api/private" -> Http4sTutorial.directorRoutes[IO]
+    ).orNotFound
+
+    BlazeServerBuilder[IO](global)
+      .bindHttp(8080, "localhost")
+      .withHttpApp(apis)
+      .resource
+      .use(_ => IO.never)
+      .as(ExitCode.Success)
   }
 }
