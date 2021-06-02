@@ -37,6 +37,8 @@ object Http4sTutorial extends IOApp {
     "Zack Snyder"
   )
 
+  val movies: Map[String, Movie] = Map(snjl.id -> snjl)
+
   object DirectorQueryParamMatcher extends QueryParamDecoderMatcher[String]("director")
 
   implicit val yearQueryParamDecoder: QueryParamDecoder[Year] =
@@ -59,25 +61,21 @@ object Http4sTutorial extends IOApp {
           case Some(y) =>
             y.fold(
               _ => BadRequest("The given year is not valid"),
-              year => Ok(List(snjl).asJson)
-              // Proceeding with the business logic
+              { year =>
+                val moviesByDirAndYear =
+                  movies.values.filter { movie =>
+                    movie.director == director && movie.year == year.getValue
+                  }
+                Ok(moviesByDirAndYear.asJson)
+              }
             )
           case None => NotFound(s"There are no movies for director $director")
         }
       case GET -> Root / "movies" / UUIDVar(movieId) / "actors" =>
-        if ("6bcbca1e-efd3-411d-9f7c-14b872444fce" == movieId.toString)
-          Ok(
-            List(
-              "Henry Cavill",
-              "Gal Godot",
-              "Ezra Miller",
-              "Ben Affleck",
-              "Ray Fisher",
-              "Jason Momoa"
-            ).asJson
-          )
-        else
-          NotFound(s"No movie with id $movieId found")
+        movies.get(movieId.toString).map(_.actors) match {
+          case Some(actors) => Ok(actors.asJson)
+          case _ => NotFound(s"No movie with id $movieId found")
+        }
     }
   }
 
