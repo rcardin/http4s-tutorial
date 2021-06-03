@@ -16,6 +16,7 @@ import org.http4s.server.blaze.BlazeServerBuilder
 import org.typelevel.ci.CIString
 
 import java.time.Year
+import java.util.UUID
 import scala.collection.mutable
 import scala.util.Try
 
@@ -57,27 +58,32 @@ object Http4sTutorial extends IOApp {
     import dsl._
     HttpRoutes.of[F] {
       case GET -> Root / "movies" :? DirectorQueryParamMatcher(director) +& YearQueryParamMatcher(maybeYear) =>
+        val movieByDirector = findMoviesByDirector(director)
         maybeYear match {
           case Some(y) =>
             y.fold(
               _ => BadRequest("The given year is not valid"),
               { year =>
                 val moviesByDirAndYear =
-                  movies.values.filter { movie =>
-                    movie.director == director && movie.year == year.getValue
-                  }
+                  movieByDirector.filter(_.year == year.getValue)
                 Ok(moviesByDirAndYear.asJson)
               }
             )
-          case None => NotFound(s"There are no movies for director $director")
+          case None => Ok(movieByDirector.asJson)
         }
       case GET -> Root / "movies" / UUIDVar(movieId) / "actors" =>
-        movies.get(movieId.toString).map(_.actors) match {
+        findMovieById(movieId).map(_.actors) match {
           case Some(actors) => Ok(actors.asJson)
           case _ => NotFound(s"No movie with id $movieId found")
         }
     }
   }
+
+  private def findMovieById(movieId: UUID) =
+    movies.get(movieId.toString)
+
+  private def findMoviesByDirector(director: String): List[Movie] =
+    movies.values.filter(_.director == director).toList
 
   object DirectorVar {
     def unapply(str: String): Option[Director] = {
